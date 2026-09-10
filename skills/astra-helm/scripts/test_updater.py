@@ -80,7 +80,7 @@ class UpdaterTests(unittest.TestCase):
 
         def open_url(url, max_bytes):
             if url == updater.API_URL:
-                return json.dumps({"sha": commit}).encode()
+                return json.dumps({"object": {"sha": commit, "type": "commit"}}).encode()
             if url == updater.raw_url(commit, updater.MANIFEST_NAME):
                 return json.dumps(manifest).encode()
             relative = url.split(f"/{updater.REMOTE_SUBDIR}/", 1)[1]

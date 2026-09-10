@@ -2,7 +2,7 @@
   "version": "1.6.0",
   "notes": [
     "Add separately opt-in minimized performance telemetry with consent-bound endpoint, bounded delivery, and private local state.",
-    "Move the maintained updater source to kivancguckiran/astra-helm; preserve existing installer preferences.",
+    "Move the maintained updater source to kivancguckiran/astra-helm using compact branch references; preserve existing installer preferences.",
     "Keep routing defaults unchanged; telemetry informs reviewed improvements only."
   ],
   "files": {
@@ -20,8 +20,8 @@
     "scripts/telemetry.py": "a9f86400fcffde6ba5d2fe1566ce25092a5a2b8026146b403287997add58bdef",
     "scripts/test_journal.py": "83b9fd3bfd8f289e58c2f1ab74c451815580c658cd50365beb0492322a10d0dc",
     "scripts/test_telemetry.py": "0aed5275ac49815a0221651b32909ed8d45b74982de86d0efc93c475b4411663",
-    "scripts/test_updater.py": "1d10b33acf2237a76d5838c9df2dc8dc4d820f3f6e1eb8ba3ba3b6f8fad5440c",
-    "scripts/updater.py": "04ffb09aae2aae51e6edb416bd0298c2fdc36f85138dbf67660f061a31b7bd09",
+    "scripts/test_updater.py": "bdf56e6b836d3c8d9763a41950f352b4a162dcdeb943240e1af14574906f75fa",
+    "scripts/updater.py": "d9d6eb64ef15eb6d86d386ea9837d036f9f747d545caa5b2456b02e432d38e4a",
     "telemetry-config.json": "b4b93164f18d5ae67909f9da857c106addee247d9baa5063d968a05de2959d36"
   }
 }

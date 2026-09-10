@@ -30,7 +30,7 @@ MAX_MANIFEST_BYTES = 128 * 1024
 MAX_FILE_BYTES = 1024 * 1024
 MAX_TOTAL_BYTES = 8 * 1024 * 1024
 MAX_FILES = 64
-API_URL = "https://api.github.com/repos/kivancguckiran/astra-helm/commits/main"
+API_URL = "https://api.github.com/repos/kivancguckiran/astra-helm/git/ref/heads/main"
 RAW_PREFIX = "https://raw.githubusercontent.com/kivancguckiran/astra-helm/"
 REMOTE_SUBDIR = "skills/astra-helm"
 SEMVER_RE = re.compile(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\Z")
@@ -280,7 +280,8 @@ def _fetch_json(url: str, max_bytes: int) -> object:
 
 def resolve_main_commit() -> str:
     value = _fetch_json(API_URL, 64 * 1024)
-    commit = value.get("sha") if isinstance(value, dict) else None
+    reference = value.get("object") if isinstance(value, dict) else None
+    commit = reference.get("sha") if isinstance(reference, dict) and reference.get("type") == "commit" else None
     if not isinstance(commit, str) or not SHA_RE.fullmatch(commit):
         raise UpdaterError("GitHub main response did not contain a valid commit SHA")
     return commit
