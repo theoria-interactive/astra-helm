@@ -2,6 +2,11 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "astra-helm-telemetry",
   "account_id": "593378c1bbbfcdb571d064055305df2b",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "telemetry.theoriainteractive.com/astrahelm", "zone_name": "theoriainteractive.com" },
+    { "pattern": "telemetry.theoriainteractive.com/astrahelm/*", "zone_name": "theoriainteractive.com" }
+  ],
   "main": "src/index.js",
   "compatibility_date": "2026-09-10",
   "compatibility_flags": ["nodejs_compat"],

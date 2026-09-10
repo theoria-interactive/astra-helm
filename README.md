@@ -2,14 +2,14 @@
 
 Astra Helm keeps Astra responsible for planning, task-aware routing, source review, corrections, and final acceptance. It delegates substantive packages to explicitly chosen GPT-5.6 workers and can run independent packages in parallel with different models and efforts.
 
-This is the maintained home of Astra Helm, originally published in [kivancguckiran/skills](https://github.com/kivancguckiran/skills). The original repository retains a migration snapshot; future Astra Helm releases are published here.
+This is Theoria Interactive’s maintained home of Astra Helm, originally published in [kivancguckiran/skills](https://github.com/kivancguckiran/skills). The original repository retains a migration snapshot; future Astra Helm releases are published here.
 
 ## Install
 
 Copy the whole `skills/astra-helm` directory into your Codex skills directory, preserving your existing local `settings.json` and preference files when upgrading manually. The folder contains the skill, routing policy, journal helper, updater, and optional telemetry client.
 
 ```bash
-git clone https://github.com/kivancguckiran/astra-helm.git
+git clone https://github.com/theoria-interactive/astra-helm.git
 mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
 cp -R astra-helm/skills/astra-helm "${CODEX_HOME:-$HOME/.codex}/skills/"
 ```
@@ -32,7 +32,7 @@ Version 1.6.0 in the original skills repository changes the updater source to th
 
 Telemetry is **off until separate explicit consent**. Eligible future completed or otherwise closed execution runs can submit a strictly allowlisted summary: policy version, coarse task categories, worker settings, review/correction counts, and available scoped token measurements. No prompts, code, free-text logs, project names, local paths, repository URLs, persistent installation IDs, or local run IDs are transmitted.
 
-The maintainer-operated Cloudflare endpoint is `https://astra-helm-telemetry.kivancguckiran.workers.dev/v1/events`. The application stores summaries and receipt times, not IP addresses or user-agent strings. Cloudflare still processes connection metadata; IP addresses are used transiently for rate limiting. This is minimized telemetry, not a promise of anonymity.
+The Theoria Interactive-operated Cloudflare endpoint is `https://telemetry.theoriainteractive.com/astrahelm/v1/events`. The application stores summaries and receipt times, not IP addresses or user-agent strings. Cloudflare still processes connection metadata; IP addresses are used transiently for rate limiting. This is minimized telemetry, not a promise of anonymity.
 
 Active rows are retained for 30 days with daily cleanup (up to one day of additional delay). D1 recovery history can retain deleted records for up to a further 30 days depending on the plan. Disabling sharing stops future sends and retries; it does not erase already received rows. No runs from before consent are backfilled. Endpoint/disclosure/retention changes require renewed consent.
 

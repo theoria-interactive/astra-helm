@@ -6,9 +6,9 @@ Performance sharing is optional and independent of update checks. It is disabled
 
 Explain this before enabling sharing:
 
-> Help improve Astra Helm by automatically sharing a small summary after eligible future runs: skill version, coarse task categories, worker model/effort choices, correction counts, final review outcomes, and available scoped token counts. No prompts, code, diffs, project names, repository URLs, file paths, raw logs, or free-text feedback are sent. The service is operated by the maintainer of `kivancguckiran/astra-helm` on Cloudflare. Sharing is optional and can be disabled at any time without affecting the skill.
+> Help improve Astra Helm by automatically sharing a small summary after eligible future runs: skill version, coarse task categories, worker model/effort choices, correction counts, final review outcomes, and available scoped token counts. No prompts, code, diffs, project names, repository URLs, file paths, raw logs, or free-text feedback are sent. The service is operated by the maintainer of `theoria-interactive/astra-helm` on Cloudflare. Sharing is optional and can be disabled at any time without affecting the skill.
 
-Also disclose the concrete endpoint in `telemetry-config.json`, currently `https://astra-helm-telemetry.kivancguckiran.workers.dev/v1/events`, and these limits:
+Also disclose the concrete endpoint in `telemetry-config.json`, currently `https://telemetry.theoriainteractive.com/astrahelm/v1/events`, and these limits:
 
 - Each transmitted event has a random delivery ID for deduplication. No persistent installation identifier or local run/assignment ID is sent.
 - The receiver stores the allowlisted summary and its receipt time. IP addresses are used transiently for rate limiting; the application does not store them or user-agent strings. Cloudflare handles connection metadata under its own policies. Do not promise anonymity.

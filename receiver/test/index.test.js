@@ -283,3 +283,34 @@ test("scheduled cleanup deletes rows older than 30 days", async () => {
   await handleScheduled({ scheduledTime }, { DB: database });
   assert.equal(database.deleteCutoff, scheduledTime / 1_000 - 30 * 24 * 60 * 60);
 });
+
+test("mounted routes serve disclosure and health without exposing stored events", async () => {
+  const env = envWith();
+  for (const path of ["/astrahelm", "/astrahelm/", "/astrahelm/privacy"]) {
+    const response = await worker.fetch(new Request(`https://telemetry.example${path}`), env);
+    assert.equal(response.status, 200);
+    assert.match((await response.json()).operator, /Theoria Interactive/);
+  }
+  const health = await worker.fetch(new Request("https://telemetry.example/astrahelm/health"), env);
+  assert.deepEqual(await health.json(), { ok: true });
+  for (const path of ["/astrahelm-other/health", "/astrahelm/events", "/astrahelm/v1/events/"]) {
+    assert.equal((await worker.fetch(new Request(`https://telemetry.example${path}`), env)).status, 404);
+  }
+});
+
+test("mounted intake retains validation, storage and method restrictions", async () => {
+  const database = new MockDatabase();
+  const env = envWith({ database });
+  const url = "https://telemetry.example/astrahelm/v1/events";
+  const response = await worker.fetch(new Request(url, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(event()),
+  }), env);
+  assert.equal(response.status, 200);
+  assert.equal(database.rows.size, 1);
+  assert.equal((await worker.fetch(new Request(url), env)).status, 405);
+  const invalid = await worker.fetch(new Request(url, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: '{}',
+  }), env);
+  assert.equal(invalid.status, 400);
+  assert.equal(database.rows.size, 1);
+});

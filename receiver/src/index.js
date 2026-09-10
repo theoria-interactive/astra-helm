@@ -343,7 +343,7 @@ async function postEvent(request, env) {
 const PRIVACY_DISCLOSURE = {
   service: "Astra Helm opt-in telemetry receiver",
   schema_version: 1,
-  operator: "This endpoint is operated by the Astra Helm repository owner.",
+  operator: "This endpoint is operated by Theoria Interactive, owner of the Astra Helm repository.",
   purpose: "Aggregate categorical routing outcomes to improve Astra Helm defaults.",
   trust: "Events are untrusted, opt-in self-reports; the server cannot prove user consent.",
   accepted_fields: {
@@ -394,19 +394,25 @@ export default {
   async fetch(request, env) {
     try {
       const url = new URL(request.url);
-      if (url.pathname === "/health") {
+      // Preserve legacy paths for installed clients while mounting the new address.
+      const path = url.pathname === "/astrahelm" || url.pathname === "/astrahelm/"
+        ? "/privacy"
+        : url.pathname.startsWith("/astrahelm/")
+          ? url.pathname.slice("/astrahelm".length)
+          : url.pathname;
+      if (path === "/health") {
         if (request.method !== "GET") {
           return errorResponse("method_not_allowed", 405, { Allow: "GET" });
         }
         return jsonResponse({ ok: true });
       }
-      if (url.pathname === "/privacy") {
+      if (path === "/privacy") {
         if (request.method !== "GET") {
           return errorResponse("method_not_allowed", 405, { Allow: "GET" });
         }
         return jsonResponse(PRIVACY_DISCLOSURE);
       }
-      if (url.pathname === "/v1/events") {
+      if (path === "/v1/events") {
         if (request.method !== "POST") {
           return errorResponse("method_not_allowed", 405, { Allow: "POST" });
         }

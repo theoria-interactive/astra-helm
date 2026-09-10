@@ -1,10 +1,12 @@
 # Astra Helm telemetry receiver
 
-This directory contains the minimal Cloudflare Worker that receives Astra Helm's opt-in, categorical telemetry. It has three public routes:
+This directory contains the minimal Cloudflare Worker that receives Astra Helm's opt-in, categorical telemetry. Its production base is `https://telemetry.theoriainteractive.com/astrahelm`. It has these public routes:
 
-- `POST /v1/events` validates and stores one event.
-- `GET /health` returns only `{ "ok": true }`.
-- `GET /privacy` returns the field allowlist and privacy/retention disclosure.
+- `POST /astrahelm/v1/events` validates and stores one event.
+- `GET /astrahelm/health` returns only `{ "ok": true }`.
+- `GET /astrahelm/privacy` returns the field allowlist and privacy/retention disclosure.
+
+`GET /astrahelm` (with or without a trailing slash) also returns the privacy disclosure. The original Workers.dev routes remain available for existing clients; requests are not redirected. Updated clients require renewed consent for the new endpoint and disclosure.
 
 There are no public data-reading routes. The receiver never logs requests or application errors, and Workers observability is intentionally disabled so telemetry payloads and request metadata do not enter Workers Logs or traces. The payload is untrusted self-reported data; accepting it cannot prove that a client obtained consent.
 
@@ -47,4 +49,6 @@ npm run check
 npm run deploy
 ```
 
-No secret or private credential belongs in this repository. Wrangler obtains operator authentication from its normal interactive or CI environment. The expected production route is `https://astra-helm-telemetry.kivancguckiran.workers.dev/v1/events`.
+No secret or private credential belongs in this repository. Wrangler obtains operator authentication from its normal interactive or CI environment. The expected production route is `https://telemetry.theoriainteractive.com/astrahelm/v1/events`.
+
+The proxied DNS record for `telemetry.theoriainteractive.com` is an originless AAAA record (`100::`). The two path-scoped Worker routes in `wrangler.jsonc` serve Astra Helm without claiming other telemetry paths.
