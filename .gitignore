@@ -1,0 +1,19 @@
+.DS_Store
+*.log
+*.tmp
+node_modules/
+.env
+.env.*
+
+# Installer-local Astra Helm state
+.update-state.json
+.update-lock
+.update-backups/
+__pycache__/
+
+# Optional telemetry client and local receiver state
+.telemetry-state.json
+.telemetry-lock
+.wrangler/
+.dev.vars
+receiver/node_modules/

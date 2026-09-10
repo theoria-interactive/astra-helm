@@ -1,0 +1,119 @@
+{
+  "version": "1.6.0",
+  "coordinator": {
+    "model": "gpt-6-astra",
+    "default_effort": "medium",
+    "planning_review_acceptance_effort": "medium",
+    "automatic_effort_escalation": false,
+    "explicit_user_override": true
+  },
+  "worker_routes": {
+    "general_implementation": {
+      "model": "gpt-5.6-sol",
+      "effort": "medium",
+      "reason": "General implementation with contextual breadth or follow-through beyond a bounded local package."
+    },
+    "narrow_mechanical": {
+      "model": "gpt-5.6-luna",
+      "effort": "low",
+      "reason": "Clear, repeatable changes with little ambiguity; assess reasoning work separately."
+    },
+    "bounded_or_read_heavy": {
+      "model": "gpt-5.6-terra",
+      "effort": "medium",
+      "reason": "Bounded implementation or investigation with clear contracts and limited cross-component coupling."
+    },
+    "complex_implementation": {
+      "model": "gpt-5.6-sol",
+      "effort": "high",
+      "reason": "Cross-component judgment for interacting subsystems, concurrency/scheduling, hard debugging, or consequential correctness; size alone is insufficient."
+    },
+    "clear_contract_reasoning": {
+      "model": "gpt-5.6-luna",
+      "effort": "max",
+      "reason": "Provisional candidate for self-contained reasoning with a clear contract, limited coupling, and independently checkable acceptance."
+    },
+    "dense_local_rules": {
+      "model": "gpt-5.6-terra",
+      "effort": "high",
+      "reason": "Dense local business rules or state transitions within a clear ownership and integration boundary."
+    }
+  },
+  "correction_rounds_before_replan": 2,
+  "measurement_policy": "Unknown usage stays null. Compare similar tasks accepted against comparable quality contracts; include implementation, functional and quality corrections, and attributable coordinator review. Keep shared setup overhead separate. Functional pass cost is not final quality acceptance cost. Routing defaults remain hypotheses.",
+  "logging_access": "Request directory-scoped access once per session when needed; reuse grants, otherwise use the authorized workspace fallback and retain the run root.",
+  "dispatch_authorization": {
+    "execution_intent_authorizes_dispatch": true,
+    "plan_or_advice_is_read_only": true,
+    "honor_explicit_delegation": true,
+    "present_copyable_dispatch_command": false,
+    "reuse_existing_scope_authorization": true,
+    "per_item_reconfirmation": false,
+    "respect_work_until_finished": true,
+    "create_goal_only_when_explicitly_requested": true
+  },
+  "work_scheduling": {
+    "small_coherent_mode": "direct_astra_when_delegation_overhead_exceeds_benefit",
+    "substantive_default_worker_count": 1,
+    "large_work_mode": "parallel_independent_substantive_packages",
+    "prefer_existing_epic_milestone_items": true,
+    "decompose_large_unstructured_work": true,
+    "parallelism_limit": "available_host_capacity_and_user_limits_as_ceiling_not_target",
+    "release_dependents_after": "prerequisites_accepted_and_available",
+    "refill_capacity_as_items_complete": true,
+    "final_integration_review": true
+  },
+  "execution_evidence": {
+    "worktree_instruction_check": "on_entry_or_resume_then_only_when_relevant_inputs_change",
+    "persistent_test_isolation": "verify_actual_destination_before_first_mutating_test_and_after_environment_changes",
+    "additional_review": "requires_concrete_risk_or_evidence_gap",
+    "accepted_evidence_reuse": "invalidate_only_for_relevant_source_dependency_environment_change_or_new_finding"
+  },
+  "routing_assessment": {
+    "dimensions": [
+      "contract_clarity",
+      "cross_component_coupling",
+      "state_and_concurrency",
+      "algorithmic_demands",
+      "failure_impact"
+    ],
+    "selection_unit": "owned_work_package",
+    "mixed_routes_allowed": true,
+    "other_supported_efforts": "require_task_specific_reason",
+    "evidence_status": "provisional_limited_samples"
+  },
+  "quality_acceptance": {
+    "dimensions": [
+      "explicit_instruction_compliance",
+      "design_simplicity",
+      "error_visibility",
+      "critical_regression_protection"
+    ],
+    "passing_tests_alone_sufficient": false,
+    "material_findings_require_correction": true,
+    "corrected_defects": "count_as_rework_not_final_artifact_penalty",
+    "new_requirements": "identify_separately_from_original_noncompliance",
+    "style_preferences": "not_mandatory_without_concrete_impact"
+  },
+  "history_collection": {
+    "fallback_roots": "register_explicit_known_roots_when_shared_registry_writable_otherwise_include_root_on_summary",
+    "runtime_evidence": "record_sourced_observations_at_report_or_finish_when_available",
+    "unknown_measurements": "null_with_reason",
+    "usage_aggregation": "preserve_measurement_scope_do_not_sum_overlapping_records"
+  },
+  "installer_updates": {
+    "checks": "opt_in_weekly_on_skill_load",
+    "installation": "explicit_approval_of_reviewed_commit",
+    "local_customizations": "refuse_overwrite",
+    "failure": "continue_user_task"
+  },
+  "telemetry": {
+    "default": "off_until_separate_explicit_consent",
+    "scope": "closed_execution_runs_started_after_consent",
+    "payload": "strict_categories_counters_and_random_delivery_id",
+    "source_text": "never_transmitted",
+    "failure": "bounded_nonblocking_retry",
+    "consent_binding": "endpoint_disclosure_and_retention",
+    "retention_days": 30
+  }
+}

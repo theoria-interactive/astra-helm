@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "endpoint": "https://astra-helm-telemetry.kivancguckiran.workers.dev/v1/events",
+  "disclosure_version": "1",
+  "retention_days": 30
+}

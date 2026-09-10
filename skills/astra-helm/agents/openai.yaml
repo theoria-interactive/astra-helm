@@ -1,0 +1,4 @@
+interface:
+  display_name: "Astra Helm"
+  short_description: "Astra yönetsin; gerektiğinde 5.6 ajanları çalışsın."
+  default_prompt: "$astra-helm kullan: yürütme istediysem kapsamı tamamla; yalnız plan istediysem salt okunur bir plan sun."

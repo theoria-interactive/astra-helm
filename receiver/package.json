@@ -1,0 +1,20 @@
+{
+  "name": "astra-helm-telemetry",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "dev": "wrangler dev --local --test-scheduled",
+    "check": "wrangler deploy --dry-run",
+    "db:migrate:local": "wrangler d1 migrations apply astra-helm-telemetry --local",
+    "db:migrate:remote": "wrangler d1 migrations apply astra-helm-telemetry --remote",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.130.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

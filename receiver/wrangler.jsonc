@@ -1,0 +1,34 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "astra-helm-telemetry",
+  "account_id": "593378c1bbbfcdb571d064055305df2b",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-10",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    // Telemetry payloads and request metadata must not enter Workers Logs or traces.
+    "enabled": false
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "astra-helm-telemetry",
+      "database_id": "2e0b294a-d94f-4a45-9a3b-c2854d5863c0",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "RATE_LIMITER",
+      "namespace_id": "739104",
+      "simple": {
+        "limit": 10,
+        "period": 60
+      }
+    }
+  ],
+  "triggers": {
+    // Cron Triggers run in UTC. Rows older than 30 days are removed daily.
+    "crons": ["17 3 * * *"]
+  }
+}
