@@ -1,25 +1,26 @@
 {
-  "version": "1.6.1",
+  "version": "1.7.0",
   "notes": [
-    "Move Astra Helm to theoria-interactive/astra-helm and telemetry.theoriainteractive.com/astrahelm; require renewed telemetry consent for the endpoint and disclosure change."
+    "Separate parent outcome from explicit delivered-work acceptance and categorical blocker reasons; clarify scope and native verification guidance.",
+    "Disclosure version 3 requires renewed telemetry consent. Deploy the updated receiver before updating clients; legacy payloads remain supported."
   ],
   "files": {
-    "SKILL.md": "cb514d1d970149dfb62bb1ecad051c984cc1c450c1ebf5332cd01713af6fc2ed",
+    "SKILL.md": "89a13a932e3e9d5b3fd91bfa84db0f95891d4278e91d6a63f0b66582c375497e",
     "agents/openai.yaml": "a2771e6e263020086d7675f5a84d413f9c43bda931bc6ce88adbda69ec5a9842",
-    "policy.json": "2fda2a91b6a97e0474b9e0e9497e9df074f6d1e076874e9add1246360e95dd43",
-    "references/execution-evidence.md": "7ca156e5406163f992efea2f4b62bef7ac0d46fe31da958403e4aa706b0c4e44",
+    "policy.json": "260494aaf3f827e7b9ea035d8793e847eeb0123f99e00aed8802eec9f681ee23",
+    "references/execution-evidence.md": "e34780b68f82184b50229e49e2c0da73abfa70e403d370a3c85d0462504c964e",
     "references/large-work.md": "03e8a877b948a2407d1c142ff609c5202165978c6c5e4a22cca0c27d5ba11a01",
-    "references/logging.md": "1d1e95294b9e524e13fc481828c6bd84828bb48246eec16f74010ac938e2f595",
-    "references/telemetry.md": "2f57e7e89658155c97cb6af327f561a9ab90132ebbd720acd2551392dd756521",
+    "references/logging.md": "a34fce6db9e4436eeb2f5611f1dcc37e2fd0f986a06273c7931155e8132649c5",
+    "references/telemetry.md": "6abe4e7370fd6f64a2c2382675a8ba3f2a6ca21512ed78950c913c6cc2bee20d",
     "references/tuning.md": "c4ef082c1e96ebf788a1a639d1daf853994c16070e67387fb8df518676cbd735",
     "references/updates.md": "430758f8a39820327ca5f719f1d3b682e1d5e088a47bd818681c7db7041d6ff4",
     "scripts/build_update_manifest.py": "eda17202a96e616d1d5083cf94fac8eb01b713fab28e7c88999b0aefb4b7437b",
-    "scripts/journal.py": "e456e8c96b4cf98ae94f1bd7d74c358aeca47d3e246a1093a01f719aca18bf29",
-    "scripts/telemetry.py": "a9f86400fcffde6ba5d2fe1566ce25092a5a2b8026146b403287997add58bdef",
-    "scripts/test_journal.py": "83b9fd3bfd8f289e58c2f1ab74c451815580c658cd50365beb0492322a10d0dc",
-    "scripts/test_telemetry.py": "0aed5275ac49815a0221651b32909ed8d45b74982de86d0efc93c475b4411663",
+    "scripts/journal.py": "67cd3282799f968f5b2a57f36fbb60780128e2d5912841966deff6dc8906b14f",
+    "scripts/telemetry.py": "8ad38fa05e7a2fb0c39211215c8e9640379bd66e95915d96341e280accf37aca",
+    "scripts/test_journal.py": "45ca55a4a029867ac270f91fa3c8b9f28ae4a20e7955d3ea29a32e4ac57ea9ae",
+    "scripts/test_telemetry.py": "8b80ca838e31f0f9f5f7e481e9ce3ccf4a7c059385d65d27497dcaf9a7830f31",
     "scripts/test_updater.py": "bdf56e6b836d3c8d9763a41950f352b4a162dcdeb943240e1af14574906f75fa",
     "scripts/updater.py": "80ea371d7585db2e087695604ece1203d8a9347ab47317ee8bfc264ad67d10a9",
-    "telemetry-config.json": "d24a66b22b6edaa6491474645e15fe817e29c4bb7f024d1a52fdb0e9c07fceaf"
+    "telemetry-config.json": "463ee045fc6614ba8238b70319edc8304903e6024756031957494597075f482b"
   }
 }

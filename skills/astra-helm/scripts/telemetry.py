@@ -47,6 +47,11 @@ OUTCOMES = {"completed", "blocked", "cancelled", "failed"}
 MODELS = {"gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"}
 EFFORTS = {"low", "medium", "high", "xhigh", "max", "ultra"}
 VERDICTS = {"accepted", "changes_requested", "blocked"}
+BLOCKER_REASONS = {
+    "pending_decision", "external_approval", "environment_limitation",
+    "unresolved_defect", "verification_gap",
+}
+DELIVERED_WORK_STATUSES = {"accepted", "changes_requested", "not_reviewed"}
 USAGE_KEYS = ("input_tokens", "cached_input_tokens", "output_tokens", "reasoning_output_tokens")
 USAGE_REASONS = {"no_measurements", "unsupported_scope", "incomplete_counters", "conflicting_measurements"}
 SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
@@ -377,7 +382,10 @@ def validate_wire_payload(payload: object) -> bytes:
         "schema_version", "event_id", "policy_version", "task_type", "risk", "outcome",
         "worker_count", "dependency_count", "routes", "coordinator_usage", "coordinator_usage_reason",
     }
-    optional = {"contract_clarity", "coupling", "state_concurrency"}
+    optional = {
+        "contract_clarity", "coupling", "state_concurrency",
+        "blocker_reasons", "delivered_work_status",
+    }
     if not isinstance(payload, dict) or not required.issubset(payload) or not set(payload).issubset(required | optional):
         raise TelemetryError("frozen telemetry payload is malformed")
     if payload["schema_version"] != SCHEMA_VERSION:
@@ -426,6 +434,17 @@ def validate_wire_payload(payload: object) -> bytes:
                       "state_concurrency": {"low", "medium", "high"}}
     if any(key in payload and payload[key] not in allowed for key, allowed in category_enums.items()):
         raise TelemetryError("frozen telemetry payload is malformed")
+    if "blocker_reasons" in payload:
+        reasons = payload["blocker_reasons"]
+        if (not isinstance(reasons, list)
+                or any(not isinstance(reason, str) or reason not in BLOCKER_REASONS for reason in reasons)
+                or len(reasons) != len(set(reasons))
+                or (reasons and payload["outcome"] != "blocked")):
+            raise TelemetryError("frozen telemetry payload is malformed")
+    if "delivered_work_status" in payload:
+        delivered_status = payload["delivered_work_status"]
+        if not isinstance(delivered_status, str) or delivered_status not in DELIVERED_WORK_STATUSES:
+            raise TelemetryError("frozen telemetry payload is malformed")
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     if len(encoded) > MAX_REQUEST_BYTES:
         raise TelemetryError("minimized event exceeds request size limit")
@@ -534,6 +553,17 @@ def build_payload(records: list[dict], event_id: str) -> dict:
         "coordinator_usage_reason": coordinator_reason,
     }
     payload.update(explicit_characteristics(dispatches))
+    finish_data = finish.get("data")
+    if isinstance(finish_data, dict):
+        reasons = finish_data.get("blocker_reasons")
+        if (isinstance(reasons, list)
+                and all(isinstance(reason, str) and reason in BLOCKER_REASONS for reason in reasons)
+                and len(reasons) == len(set(reasons))
+                and (not reasons or payload["outcome"] == "blocked")):
+            payload["blocker_reasons"] = reasons
+        delivered_status = finish_data.get("delivered_work_status")
+        if isinstance(delivered_status, str) and delivered_status in DELIVERED_WORK_STATUSES:
+            payload["delivered_work_status"] = delivered_status
     validate_wire_payload(payload)
     return payload
 

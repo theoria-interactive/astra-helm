@@ -73,7 +73,7 @@ Additional independent review needs a concrete risk or evidence gap. After corre
 
 Send actionable functional or quality corrections to the same worker with the location, impact, expected result, and verification method. After two unsuccessful correction rounds on the same issue, diagnose whether the cause is the brief, context, verification, environment, package size, or model/effort. Then replan from evidence by revising criteria, splitting scope, or replacing the worker. Stop the old worker before overlapping replacement work. Do not assume every failure requires a stronger model or move substantive implementation silently back to Astra.
 
-Continue until the authorized scope and integration criteria are accepted or a genuine blocker is explained. Routine implementation choices do not require user confirmation. Ask only for an unresolved decision, permission, or external change that is actually necessary.
+Continue until the authorized scope and integration criteria are accepted or a genuine blocker is explained. At closure, judge the agreed run scope; unrelated future work does not prevent completion. Record delivered-work integration acceptance separately from the parent outcome and record explicit blocker categories under the logging protocol. Routine implementation choices do not require user confirmation. Ask only for an unresolved decision, permission, or external change that is actually necessary.
 
 ## Keep a useful history
 

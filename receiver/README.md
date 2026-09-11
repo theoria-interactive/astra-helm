@@ -52,3 +52,9 @@ npm run deploy
 No secret or private credential belongs in this repository. Wrangler obtains operator authentication from its normal interactive or CI environment. The expected production route is `https://telemetry.theoriainteractive.com/astrahelm/v1/events`.
 
 The proxied DNS record for `telemetry.theoriainteractive.com` is an originless AAAA record (`100::`). The two path-scoped Worker routes in `wrangler.jsonc` serve Astra Helm without claiming other telemetry paths.
+
+## Outcome metadata rollout
+
+Version 1.7.0 adds optional `delivered_work_status` and `blocker_reasons` fields to schema version 1. The receiver accepts older payloads with these fields absent; no D1 migration or historical backfill is needed. Missing fields mean unknown. Blocker categories describe why the parent scope stopped, while delivered-work status records integration acceptance separately.
+
+Deploy the updated receiver before installing or distributing clients that emit these fields: the previous receiver's strict allowlist rejects them. Then clients must renew consent to disclosure version 3 before sending expanded summaries. A source push alone does not deploy the receiver or update installed skills. Preserve frozen retry payloads and historical rows.

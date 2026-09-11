@@ -21,6 +21,18 @@ const OUTCOMES = new Set([
 ]);
 const CHARACTERISTIC_LEVELS = new Set(["low", "medium", "high"]);
 const CONTRACT_CLARITY = new Set(["clear", "mixed", "unclear"]);
+const BLOCKER_REASONS = new Set([
+  "pending_decision",
+  "external_approval",
+  "environment_limitation",
+  "unresolved_defect",
+  "verification_gap",
+]);
+const DELIVERED_WORK_STATUSES = new Set([
+  "accepted",
+  "changes_requested",
+  "not_reviewed",
+]);
 const MODELS = new Set([
   "gpt-5.6-sol",
   "gpt-5.6-terra",
@@ -66,6 +78,8 @@ const TOP_OPTIONAL_KEYS = new Set([
   "contract_clarity",
   "coupling",
   "state_concurrency",
+  "blocker_reasons",
+  "delivered_work_status",
 ]);
 const ROUTE_KEYS = new Set([
   "model",
@@ -183,6 +197,22 @@ export function validateTelemetryEvent(value) {
   if (
     Object.hasOwn(value, "state_concurrency") &&
     !CHARACTERISTIC_LEVELS.has(value.state_concurrency)
+  ) {
+    return false;
+  }
+  if (Object.hasOwn(value, "blocker_reasons")) {
+    if (
+      !Array.isArray(value.blocker_reasons) ||
+      value.blocker_reasons.some((reason) => !BLOCKER_REASONS.has(reason)) ||
+      new Set(value.blocker_reasons).size !== value.blocker_reasons.length ||
+      (value.blocker_reasons.length > 0 && value.outcome !== "blocked")
+    ) {
+      return false;
+    }
+  }
+  if (
+    Object.hasOwn(value, "delivered_work_status") &&
+    !DELIVERED_WORK_STATUSES.has(value.delivered_work_status)
   ) {
     return false;
   }
@@ -343,6 +373,7 @@ async function postEvent(request, env) {
 const PRIVACY_DISCLOSURE = {
   service: "Astra Helm opt-in telemetry receiver",
   schema_version: 1,
+  disclosure_version: "3",
   operator: "This endpoint is operated by Theoria Interactive, owner of the Astra Helm repository.",
   purpose: "Aggregate categorical routing outcomes to improve Astra Helm defaults.",
   trust: "Events are untrusted, opt-in self-reports; the server cannot prove user consent.",
@@ -360,9 +391,17 @@ const PRIVACY_DISCLOSURE = {
       "coordinator_usage",
       "coordinator_usage_reason",
     ],
-    optional: ["contract_clarity", "coupling", "state_concurrency"],
+    optional: [
+      "contract_clarity",
+      "coupling",
+      "state_concurrency",
+      "blocker_reasons",
+      "delivered_work_status",
+    ],
     route: [...ROUTE_KEYS],
     usage: [...USAGE_KEYS],
+    blocker_reasons: [...BLOCKER_REASONS],
+    delivered_work_status: [...DELIVERED_WORK_STATUSES],
   },
   excluded_data: [
     "prompts",

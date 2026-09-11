@@ -158,6 +158,33 @@ test("requires one route record for each reported worker", () => {
   assert.equal(validateTelemetryEvent(event({ worker_count: 2 })), false);
 });
 
+test("accepts optional structured outcome metadata while legacy payloads remain valid", () => {
+  assert.equal(validateTelemetryEvent(event()), true);
+  assert.equal(validateTelemetryEvent(event({ blocker_reasons: [] })), true);
+  assert.equal(
+    validateTelemetryEvent(event({
+      outcome: "blocked",
+      blocker_reasons: ["pending_decision", "verification_gap"],
+      delivered_work_status: "changes_requested",
+    })),
+    true,
+  );
+});
+
+test("rejects malformed, duplicate, unknown, and outcome-inconsistent metadata", () => {
+  for (const overrides of [
+    { blocker_reasons: "verification_gap" },
+    { outcome: "blocked", blocker_reasons: ["private free text"] },
+    { outcome: "blocked", blocker_reasons: ["verification_gap", "verification_gap"] },
+    { outcome: "blocked", blocker_reasons: [{}] },
+    { outcome: "completed", blocker_reasons: ["verification_gap"] },
+    { delivered_work_status: "private free text" },
+    { delivered_work_status: {} },
+  ]) {
+    assert.equal(validateTelemetryEvent(event(overrides)), false);
+  }
+});
+
 test("bounds dependencies to an earlier-dispatch DAG", () => {
   assert.equal(validateTelemetryEvent(event({ dependency_count: 1 })), false);
   assert.equal(
@@ -274,6 +301,14 @@ test("health and privacy expose no database rows", async () => {
   const privacy = await worker.fetch(new Request("https://telemetry.example/privacy"), env);
   assert.deepEqual(await health.json(), { ok: true });
   assert.doesNotMatch(await privacy.text(), /secret/);
+  const disclosure = await (await worker.fetch(
+    new Request("https://telemetry.example/privacy"), env,
+  )).json();
+  assert.equal(disclosure.disclosure_version, "3");
+  assert.deepEqual(
+    new Set(disclosure.accepted_fields.blocker_reasons),
+    new Set(["pending_decision", "external_approval", "environment_limitation", "unresolved_defect", "verification_gap"]),
+  );
   assert.equal(database.insertAttempts, 0);
 });
 

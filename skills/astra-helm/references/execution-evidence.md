@@ -19,3 +19,9 @@ Record the verified environment, relevant configuration, and evidence path with 
 For additional independent review, identify the concrete risk or missing evidence and the owned review scope in the existing assignment or journal. Do not create a reviewer merely because a slot is available or a report says it is ready.
 
 After corrections, reuse accepted findings, source identity, tests, and visual evidence where still applicable. Inspect the changed area and affected integration boundaries. Reopen accepted scope only when new findings or relevant source, dependency, or environment changes invalidate its evidence; state which evidence is affected and why. A changed commit alone does not invalidate unrelated checks. Record acceptance against a clear source/behavior boundary and proceed to the remaining authorized work.
+
+## Native verification boundaries
+
+Before native diagnostics, identify the shipping entry point and exact flow under test in the brief. Distinguish local export/restore, cloud recovery, and low-level database operations; proof for one does not establish another. Preserve valid evidence when redirecting a diagnostic to the correct product flow.
+
+Keep owned test environments available until the required runtime and visual reviews finish. Coordinate cleanup across platform workers and the coordinator so an early teardown does not force avoidable setup. Bound repeated environment failures, preserve their evidence, and report the affected verification gap without claiming a pass.

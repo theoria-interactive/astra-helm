@@ -1,5 +1,5 @@
 {
-  "version": "1.6.1",
+  "version": "1.7.0",
   "coordinator": {
     "model": "gpt-6-astra",
     "default_effort": "medium",
@@ -115,5 +115,11 @@
     "failure": "bounded_nonblocking_retry",
     "consent_binding": "endpoint_disclosure_and_retention",
     "retention_days": 30
+  },
+  "outcome_reporting": {
+    "scope": "agreed_run_acceptance_criteria",
+    "delivered_work_status": "explicit_integration_review_separate_from_parent_outcome",
+    "blocker_reasons": "explicit_categories_only_no_prose_inference",
+    "legacy_missing_fields": "unknown_not_backfilled"
   }
 }

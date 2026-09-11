@@ -24,6 +24,11 @@ EVENTS = {"dispatch", "report", "review", "replan", "runtime", "finish", "feedba
 POST_FINISH_EVENTS = {"runtime", "feedback", "policy_change"}
 FINISH_OUTCOMES = {"completed", "blocked", "cancelled", "failed"}
 REVIEW_VERDICTS = {"accepted", "changes_requested", "blocked"}
+BLOCKER_REASONS = {
+    "pending_decision", "external_approval", "environment_limitation",
+    "unresolved_defect", "verification_gap",
+}
+DELIVERED_WORK_STATUSES = {"accepted", "changes_requested", "not_reviewed"}
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -114,8 +119,24 @@ def validate_event(event: str, data: dict) -> None:
             raise JournalError("review verdict must be accepted, changes_requested, or blocked")
         if not isinstance(data["findings"], list):
             raise JournalError("review findings must be an array")
-    if event == "finish" and (not isinstance(data["outcome"], str) or data["outcome"] not in FINISH_OUTCOMES):
-        raise JournalError("finish outcome must be completed, blocked, cancelled, or failed")
+    if event == "finish":
+        if not isinstance(data["outcome"], str) or data["outcome"] not in FINISH_OUTCOMES:
+            raise JournalError("finish outcome must be completed, blocked, cancelled, or failed")
+        if "blocker_reasons" in data:
+            reasons = data["blocker_reasons"]
+            if (not isinstance(reasons, list)
+                    or any(not isinstance(reason, str) or reason not in BLOCKER_REASONS for reason in reasons)):
+                raise JournalError("finish blocker_reasons must be an array of supported categories")
+            if len(reasons) != len(set(reasons)):
+                raise JournalError("finish blocker_reasons must not contain duplicates")
+            if reasons and data["outcome"] != "blocked":
+                raise JournalError("finish blocker_reasons may be non-empty only for a blocked outcome")
+        if ("delivered_work_status" in data
+                and (not isinstance(data["delivered_work_status"], str)
+                     or data["delivered_work_status"] not in DELIVERED_WORK_STATUSES)):
+            raise JournalError(
+                "finish delivered_work_status must be accepted, changes_requested, or not_reviewed"
+            )
     if event == "runtime":
         validate_runtime(data)
 
@@ -562,6 +583,10 @@ def summarize_file(path: Path) -> tuple[dict | None, list[str], list[dict]]:
             "overlapping_measurements_summed": False,
         },
     }
+    if finish and "blocker_reasons" in finish["data"]:
+        row["blocker_reasons"] = finish["data"]["blocker_reasons"]
+    if finish and "delivered_work_status" in finish["data"]:
+        row["delivered_work_status"] = finish["data"]["delivered_work_status"]
     group_items = []
     reviews_by_assignment: dict[object, list[str]] = {}
     for review in reviews:

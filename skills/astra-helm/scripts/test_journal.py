@@ -204,6 +204,37 @@ class JournalTests(unittest.TestCase):
         self.assertIn("worker-1", row["usage_coverage"]["targets_without_usage"])
         self.assertTrue(any("ignored malformed legacy report usage" in item for item in report["warnings"]))
 
+    def test_finish_outcome_metadata_is_validated_and_exposed(self):
+        record = self.start()
+        journal.append_event(self.root, record["run_id"], "finish", {
+            "outcome": "blocked",
+            "blocker_reasons": ["pending_decision", "verification_gap"],
+            "delivered_work_status": "changes_requested",
+        })
+        row = journal.summary(self.root, None, 30)["runs"][0]
+        self.assertEqual(row["blocker_reasons"], ["pending_decision", "verification_gap"])
+        self.assertEqual(row["delivered_work_status"], "changes_requested")
+
+        for data in (
+            {"outcome": "blocked", "blocker_reasons": "verification_gap"},
+            {"outcome": "blocked", "blocker_reasons": ["private free text"]},
+            {"outcome": "blocked", "blocker_reasons": ["verification_gap", "verification_gap"]},
+            {"outcome": "completed", "blocker_reasons": ["verification_gap"]},
+            {"outcome": "completed", "delivered_work_status": "private free text"},
+            {"outcome": "completed", "delivered_work_status": {}},
+        ):
+            with self.subTest(data=data), self.assertRaises(journal.JournalError):
+                journal.validate_event("finish", data)
+
+        journal.validate_event("finish", {"outcome": "completed", "blocker_reasons": []})
+
+    def test_legacy_finish_summary_omits_outcome_metadata(self):
+        record = self.start()
+        journal.append_event(self.root, record["run_id"], "finish", {"outcome": "completed"})
+        row = journal.summary(self.root, None, 30)["runs"][0]
+        self.assertNotIn("blocker_reasons", row)
+        self.assertNotIn("delivered_work_status", row)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
   "endpoint": "https://telemetry.theoriainteractive.com/astrahelm/v1/events",
-  "disclosure_version": "2",
+  "disclosure_version": "3",
   "retention_days": 30
 }

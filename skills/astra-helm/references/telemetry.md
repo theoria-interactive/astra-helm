@@ -6,7 +6,7 @@ Performance sharing is optional and independent of update checks. It is disabled
 
 Explain this before enabling sharing:
 
-> Help improve Astra Helm by automatically sharing a small summary after eligible future runs: skill version, coarse task categories, worker model/effort choices, correction counts, final review outcomes, and available scoped token counts. No prompts, code, diffs, project names, repository URLs, file paths, raw logs, or free-text feedback are sent. The service is operated by the maintainer of `theoria-interactive/astra-helm` on Cloudflare. Sharing is optional and can be disabled at any time without affecting the skill.
+> Help improve Astra Helm by automatically sharing a small summary after eligible future runs: skill version, coarse task categories, worker model/effort choices, correction counts, final review outcomes, delivered-work acceptance, categorical blocker reasons, and available scoped token counts. No prompts, code, diffs, project names, repository URLs, file paths, raw logs, or free-text feedback are sent. The service is operated by the maintainer of `theoria-interactive/astra-helm` on Cloudflare. Sharing is optional and can be disabled at any time without affecting the skill.
 
 Also disclose the concrete endpoint in `telemetry-config.json`, currently `https://telemetry.theoriainteractive.com/astrahelm/v1/events`, and these limits:
 
@@ -35,6 +35,10 @@ After an eligible execution run's `finish` event, use `submit` once. The helper 
 Keep `.telemetry-state.json` and the lock local and untracked. The state holds consent and delivery bookkeeping; preserve it during updates. The public endpoint and disclosure settings are managed release files, so a changed destination is visible in review and invalidates consent. Do not place authentication secrets in the distributable skill.
 
 ## Interpretation
+
+`outcome` describes closure of the agreed parent scope. Optional `delivered_work_status` records integration review of delivered work (`accepted`, `changes_requested`, or `not_reviewed`), and optional `blocker_reasons` records only the five categories defined in the logging protocol. These are copied only from explicit structured finish fields; free-text explanations stay local. Old records without these fields remain unknown and are not backfilled. Worker acceptance alone does not establish either parent completion or integration acceptance.
+
+The sample contains only eligible closed execution runs since consent. Older completed runs, open runs, and tuning runs are excluded; an all-blocked sample does not establish that all local work was blocked.
 
 Use comparable task categories and policy versions; distinguish requested settings from sourced runtime evidence. A corrected defect is rework, not an enduring final-code penalty. Keep functional, quality, and unclassified corrections separate. Optional task characteristics are transmitted only if explicitly recorded as supported categories. Usage is exported only for a single complete measurement with a supported turn scope. Multiple measurements cannot establish non-overlap from journal IDs alone, so they remain null, as do ambiguous or incomplete counters, with a categorical reason.
 

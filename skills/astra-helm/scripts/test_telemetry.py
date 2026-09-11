@@ -56,6 +56,7 @@ class TelemetryTests(unittest.TestCase):
     def journal(self, *, started="2026-01-03T00:00:00Z", kind="execution",
                 task_type="feature", risk="low", model="gpt-5.6-terra", effort="high",
                 depends_on=None, usage=None, coordinator_usage=None, routing=None,
+                outcome="completed", blocker_reasons=None, delivered_work_status=None,
                 secret="SENTINEL-secret-project-path-prompt-code-url"):
         run_id = str(uuid.uuid4())
         start = {
@@ -80,12 +81,17 @@ class TelemetryTests(unittest.TestCase):
             records.append({"schema_version": 1, "run_id": run_id, "timestamp": "2026-01-03T00:00:03Z",
                             "event": "runtime", "data": {"coordinator": True, "source": secret,
                             "actual_model": None, "actual_effort": None, "usage": coordinator_usage}})
+        finish_data = {"outcome": outcome, "summary": secret}
+        if blocker_reasons is not None:
+            finish_data["blocker_reasons"] = blocker_reasons
+        if delivered_work_status is not None:
+            finish_data["delivered_work_status"] = delivered_work_status
         records.extend([{
             "schema_version": 1, "run_id": run_id, "timestamp": "2026-01-03T00:00:04Z",
             "event": "review", "data": {"assignment_id": secret, "verdict": "accepted", "findings": []},
         }, {
             "schema_version": 1, "run_id": run_id, "timestamp": "2026-01-03T00:00:05Z",
-            "event": "finish", "data": {"outcome": "completed", "summary": secret},
+            "event": "finish", "data": finish_data,
         }])
         (self.logs / f"{run_id}.jsonl").write_text("".join(json.dumps(item) + "\n" for item in records), encoding="utf-8")
         return run_id
@@ -297,6 +303,63 @@ class TelemetryTests(unittest.TestCase):
         code, result = self.invoke("preview", "--log-root", str(self.logs), "--run-id", run_id)
         self.assertEqual(code, 0)
         self.assertIsNone(result["payload"]["policy_version"])
+
+    def test_explicit_outcome_categories_are_transmitted_and_legacy_remains_absent(self):
+        self.consent()
+        run_id = self.journal(
+            outcome="blocked",
+            blocker_reasons=["external_approval", "environment_limitation"],
+            delivered_work_status="not_reviewed",
+        )
+        code, result = self.invoke("preview", "--log-root", str(self.logs), "--run-id", run_id)
+        self.assertEqual(code, 0)
+        payload = result["payload"]
+        self.assertEqual(payload["blocker_reasons"], ["external_approval", "environment_limitation"])
+        self.assertEqual(payload["delivered_work_status"], "not_reviewed")
+
+        legacy_id = self.journal(secret="blocked by verification gap but accepted")
+        code, result = self.invoke("preview", "--log-root", str(self.logs), "--run-id", legacy_id)
+        self.assertEqual(code, 0)
+        self.assertNotIn("blocker_reasons", result["payload"])
+        self.assertNotIn("delivered_work_status", result["payload"])
+
+    def test_source_outcome_categories_are_filtered_without_type_errors(self):
+        run_id = self.journal()
+        path = self.logs / f"{run_id}.jsonl"
+        records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        finish = next(record for record in records if record["event"] == "finish")
+        for reasons, status, expected_status in (
+            ([{}], "accepted", "accepted"),
+            (["private free text"], [], None),
+        ):
+            finish["data"]["blocker_reasons"] = reasons
+            finish["data"]["delivered_work_status"] = status
+            payload = telemetry.build_payload(records, str(uuid.uuid4()))
+            self.assertNotIn("blocker_reasons", payload)
+            if expected_status is None:
+                self.assertNotIn("delivered_work_status", payload)
+            else:
+                self.assertEqual(payload["delivered_work_status"], expected_status)
+
+    def test_frozen_payload_validation_is_strict_for_outcome_categories(self):
+        run_id = self.journal(outcome="blocked", blocker_reasons=["verification_gap"],
+                              delivered_work_status="accepted")
+        records = telemetry.load_run(self.logs, run_id)
+        payload = telemetry.build_payload(records, str(uuid.uuid4()))
+        telemetry.validate_wire_payload(payload)
+        for key, value in (
+            ("blocker_reasons", ["verification_gap", "verification_gap"]),
+            ("blocker_reasons", [{}]),
+            ("delivered_work_status", "private free text"),
+            ("delivered_work_status", {}),
+        ):
+            malformed = {**payload, key: value}
+            with self.subTest(key=key, value=value), self.assertRaises(telemetry.TelemetryError):
+                telemetry.validate_wire_payload(malformed)
+
+        invalid_outcome = {**payload, "outcome": "completed"}
+        with self.assertRaises(telemetry.TelemetryError):
+            telemetry.validate_wire_payload(invalid_outcome)
 
 
 if __name__ == "__main__":
