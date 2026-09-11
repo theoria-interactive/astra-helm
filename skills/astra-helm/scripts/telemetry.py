@@ -35,6 +35,10 @@ MAX_TOKEN_COUNT = 1_000_000_000_000
 MAX_CORRECTION_COUNT = 1000
 MAX_POLICY_VERSION_LENGTH = 32
 MAX_ENDPOINT_LENGTH = 2048
+MAX_CONSENT_EVIDENCE_BYTES = 64 * 1024
+MAX_CONSENT_PROMPT_LENGTH = 8192
+MAX_CONSENT_RESPONSE_LENGTH = 2048
+MAX_CONSENT_SOURCE_LENGTH = 1024
 TIMEOUT_SECONDS = 5.0
 BACKOFF_SECONDS = (60, 300, 1800)
 SKILL_ROOT = Path(__file__).resolve().parent.parent
@@ -94,6 +98,39 @@ def read_object(path: Path, label: str) -> dict:
     if not isinstance(value, dict):
         raise TelemetryError(f"{label} must be a JSON object")
     return value
+
+
+def read_consent_evidence(path: Path) -> dict:
+    try:
+        if path.is_symlink():
+            raise TelemetryError("consent evidence file may not be a symbolic link")
+        with path.open("rb") as handle:
+            raw = handle.read(MAX_CONSENT_EVIDENCE_BYTES + 1)
+        if len(raw) > MAX_CONSENT_EVIDENCE_BYTES:
+            raise TelemetryError("consent evidence file exceeds the local processing limit")
+        value = json.loads(raw)
+    except TelemetryError:
+        raise
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise TelemetryError("cannot read consent evidence file") from exc
+    return validate_consent_evidence(value)
+
+
+def validate_consent_evidence(value: object) -> dict:
+    limits = {
+        "prompt": MAX_CONSENT_PROMPT_LENGTH,
+        "response": MAX_CONSENT_RESPONSE_LENGTH,
+        "source": MAX_CONSENT_SOURCE_LENGTH,
+    }
+    if not isinstance(value, dict) or set(value) != set(limits):
+        raise TelemetryError("consent evidence must contain exactly prompt, response, and source")
+    evidence: dict[str, str] = {}
+    for key, limit in limits.items():
+        item = value[key]
+        if not isinstance(item, str) or not item.strip() or len(item) > limit:
+            raise TelemetryError(f"consent evidence {key} must be a non-empty string of at most {limit} characters")
+        evidence[key] = item
+    return evidence
 
 
 def validate_endpoint(value: object) -> str | None:
@@ -191,9 +228,15 @@ def state_lock(path: Path):
 
 def consent_matches(state: dict, config: dict) -> bool:
     consent = state.get("consent")
+    try:
+        evidence_valid = validate_consent_evidence(consent.get("evidence")) if isinstance(consent, dict) else None
+    except TelemetryError:
+        evidence_valid = None
     return bool(
         isinstance(consent, dict)
         and consent.get("enabled") is True
+        and consent.get("automatic_sending") is True
+        and evidence_valid is not None
         and timestamp(consent.get("consented_at")) is not None
         and consent.get("endpoint") == config["endpoint"]
         and consent.get("disclosure_version") == config["disclosure_version"]
@@ -215,6 +258,7 @@ def invalidate_changed_consent(state: dict, config: dict, now: dt.datetime) -> b
     if binding_matches:
         return False
     consent["enabled"] = False
+    consent["automatic_sending"] = False
     consent["invalidated"] = True
     consent["invalidated_at"] = timestamp_text(now)
     return True
@@ -225,37 +269,68 @@ def public_status(config: dict, state: dict) -> dict:
     configured = config["endpoint"] is not None
     enabled = consent_matches(state, config)
     reason = None
-    if not configured:
-        reason = "endpoint_not_configured"
-    elif isinstance(consent, dict) and (consent.get("invalidated") is True
-                                       or consent.get("enabled") is True and not enabled):
-        reason = "consent_invalidated"
-    elif not enabled:
+    decision = "authorized" if enabled else "unset"
+    if isinstance(consent, dict) and (consent.get("invalidated") is True
+                                     or consent.get("enabled") is True and not enabled):
+        decision = "renewal_required"
+        if consent.get("enabled") is True and "evidence" not in consent:
+            reason = "legacy_consent_requires_confirmation"
+        elif consent.get("invalidated") is True:
+            reason = "consent_invalidated"
+        else:
+            reason = "consent_receipt_invalid"
+    elif isinstance(consent, dict) and consent.get("enabled") is False:
+        decision = "declined"
         reason = "consent_off"
-    return {
+    elif not configured:
+        reason = "endpoint_not_configured"
+    result = {
         "ok": True,
         "configured": configured,
         "consent": "on" if enabled else "off",
+        "decision": decision,
         "reason": reason,
+        "endpoint": config["endpoint"],
         "disclosure_version": config["disclosure_version"],
         "retention_days": config["retention_days"],
+        "automatic_sending": enabled,
     }
+    if enabled:
+        result["authorization_receipt"] = {
+            **consent["evidence"],
+            "consented_at": consent["consented_at"],
+            "endpoint": consent["endpoint"],
+            "disclosure_version": consent["disclosure_version"],
+            "retention_days": consent["retention_days"],
+        }
+    return result
 
 
-def configure(config: dict, state: dict, choice: str, now: dt.datetime) -> dict:
+def configure(config: dict, state: dict, choice: str, now: dt.datetime,
+              evidence: dict | None = None) -> dict:
     if choice == "on":
         if config["endpoint"] is None:
             raise TelemetryError("cannot opt in until an HTTPS endpoint is configured")
+        if evidence is None:
+            raise TelemetryError("--consent-evidence-file is required when enabling automatic telemetry")
+        evidence = validate_consent_evidence(evidence)
+        if consent_matches(state, config):
+            return public_status(config, state)
         state["consent"] = {
             "enabled": True,
+            "automatic_sending": True,
             "consented_at": timestamp_text(now),
             "endpoint": config["endpoint"],
             "disclosure_version": config["disclosure_version"],
             "retention_days": config["retention_days"],
+            "evidence": evidence,
         }
     else:
+        if evidence is not None:
+            raise TelemetryError("consent evidence is not accepted when disabling telemetry")
         state["consent"] = {
             "enabled": False,
+            "automatic_sending": False,
             "disabled_at": timestamp_text(now),
             "endpoint": config["endpoint"],
             "disclosure_version": config["disclosure_version"],
@@ -674,6 +749,7 @@ def parser() -> argparse.ArgumentParser:
     commands.add_parser("status")
     configure_parser = commands.add_parser("configure")
     configure_parser.add_argument("--consent", choices=("on", "off"), required=True)
+    configure_parser.add_argument("--consent-evidence-file", type=Path)
     for name in ("preview", "submit"):
         selected = commands.add_parser(name)
         selected.add_argument("--log-root", type=Path, required=True)
@@ -692,7 +768,16 @@ def main(argv: list[str] | None = None) -> int:
             if args.command == "status":
                 result = public_status(config, state)
             elif args.command == "configure":
-                result = configure(config, state, args.consent, now)
+                evidence = None
+                if args.consent == "on":
+                    if config["endpoint"] is None:
+                        raise TelemetryError("cannot opt in until an HTTPS endpoint is configured")
+                    if args.consent_evidence_file is None:
+                        raise TelemetryError("--consent-evidence-file is required when enabling automatic telemetry")
+                    evidence = read_consent_evidence(args.consent_evidence_file)
+                elif args.consent_evidence_file is not None:
+                    raise TelemetryError("--consent-evidence-file is only valid with --consent on")
+                result = configure(config, state, args.consent, now, evidence)
                 changed = True
             elif args.command == "preview":
                 payload, _run_state = prepare(config, state, args.log_root, args.run_id, now)

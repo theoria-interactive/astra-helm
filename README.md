@@ -40,6 +40,8 @@ Read [the full disclosure and commands](skills/astra-helm/references/telemetry.m
 
 Outcome reporting distinguishes closure of the agreed task scope from acceptance of the work delivered. Optional blocker categories explain pending decisions, external approvals, environment limitations, unresolved defects, and verification gaps without transmitting free-text reasons. Version 1.7.0 expands the disclosure to version 3 and requires renewed telemetry consent; existing records are preserved.
 
+Version 1.7.1 adds a separate automatic-send consent step after update installation. A local receipt records the question, explicit answer, and reference; valid consent is reused across runs and ordinary upgrades, while an opt-out is respected. Legacy opt-ins without this receipt need one confirmation. The receipt stays local and is never sent to the receiver.
+
 ## Astra Helm benchmarks
 
 A small, exploratory benchmark on September 7, 2026 compared Astra medium coordination with different GPT-5.6 worker models and reasoning efforts. Astra handled planning, dispatch, source review, and acceptance. Workers received the same task contract within each comparison and produced separate implementations. These observations informed the provisional routing and quality acceptance rules in [Astra Helm](skills/astra-helm/SKILL.md) and its [policy](skills/astra-helm/policy.json).

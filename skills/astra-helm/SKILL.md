@@ -13,7 +13,7 @@ On skill load, follow [references/updates.md](references/updates.md) for the loc
 
 ## Optional performance sharing
 
-Read [references/telemetry.md](references/telemetry.md) at first use and before sending a completed run. Check the local preference without network access. Explain the disclosure and ask separately before enabling automatic sharing; an unanswered question means no consent. Reuse a recorded opt-out and continue the requested task while a question is pending. Update consent does not authorize telemetry. After recording `finish`, invoke the telemetry helper only for a consent-eligible execution run; send only its validated payload, never raw logs. Failed or disabled telemetry must not block completion.
+Read [references/telemetry.md](references/telemetry.md) at first use and before sending a completed run. Check the local preference without network access. Explain the disclosure and ask separately before enabling automatic sharing; an unanswered question means no consent. Reuse a recorded opt-out and continue the requested task while a question is pending. After an approved update installation, complete the separate telemetry setup in the update protocol: reuse a valid automatic-send receipt, honor a decline, or ask once for explicit automatic sending. Installation approval is not telemetry consent. Update consent does not authorize telemetry. After recording `finish`, invoke the telemetry helper only for a consent-eligible execution run; send only its validated payload, never raw logs. Failed or disabled telemetry must not block completion.
 
 ## Route the request
 

@@ -501,6 +501,18 @@ def _backup(root: Path, baseline: dict, backup: Path) -> None:
     shutil.copy2(root / MANIFEST_NAME, backup / MANIFEST_NAME, follow_symlinks=False)
 
 
+def telemetry_follow_up() -> dict:
+    """Describe the separate post-install consent check without executing it."""
+    return {
+        "action": "check_telemetry_status",
+        "helper": "scripts/telemetry.py",
+        "arguments": ["status"],
+        "execute": False,
+        "ask_separately_only_if_decision": ["unset", "renewal_required"],
+        "installation_approval_is_telemetry_consent": False,
+    }
+
+
 def _install_locked(commit: str, root: Path) -> dict:
     state = load_state(root)
     if state is None:
@@ -565,6 +577,7 @@ def _install_locked(commit: str, root: Path) -> dict:
         return {
             "status": "installed", "version": target["version"], "commit": commit,
             "backup": str(backup),
+            "follow_up": telemetry_follow_up(),
         }
     except BaseException as exc:
         rollback_failures: list[str] = []

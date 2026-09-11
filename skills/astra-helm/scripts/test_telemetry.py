@@ -28,6 +28,13 @@ class TelemetryTests(unittest.TestCase):
         self.logs = self.root / "logs"
         self.logs.mkdir()
         self.endpoint = "https://example.test/v1/events"
+        self.evidence_path = self.root / "consent-evidence.json"
+        self.evidence = {
+            "prompt": "May Astra Helm automatically send the disclosed minimized telemetry?",
+            "response": "Yes, enable automatic sharing.",
+            "source": "explicit user response in this task",
+        }
+        self.evidence_path.write_text(json.dumps(self.evidence), encoding="utf-8")
         self.write_config(self.endpoint)
 
     def tearDown(self):
@@ -50,6 +57,7 @@ class TelemetryTests(unittest.TestCase):
         state["consent"] = {
             "enabled": True, "consented_at": at, "endpoint": self.endpoint,
             "disclosure_version": "1", "retention_days": 30,
+            "automatic_sending": True, "evidence": dict(self.evidence),
         }
         telemetry.save_state(self.state_path, state)
 
@@ -108,6 +116,91 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("endpoint", result["reason"])
 
+    def test_configure_on_requires_bounded_explicit_evidence(self):
+        code, result = self.invoke("configure", "--consent", "on")
+        self.assertEqual(code, 0)
+        self.assertIn("consent-evidence-file", result["reason"])
+
+        for evidence in (
+            {"prompt": "question", "response": "yes"},
+            {"prompt": " ", "response": "yes", "source": "task"},
+            {"prompt": "question", "response": "yes", "source": "task", "extra": "private"},
+            {"prompt": "question", "response": "x" * (telemetry.MAX_CONSENT_RESPONSE_LENGTH + 1),
+             "source": "task"},
+        ):
+            self.evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+            with self.subTest(evidence=evidence):
+                code, result = self.invoke(
+                    "configure", "--consent", "on",
+                    "--consent-evidence-file", str(self.evidence_path),
+                )
+                self.assertEqual(code, 0)
+                self.assertFalse(result["ok"])
+
+        self.evidence_path.write_bytes(b"{" + b"x" * telemetry.MAX_CONSENT_EVIDENCE_BYTES + b"}")
+        code, result = self.invoke(
+            "configure", "--consent", "on", "--consent-evidence-file", str(self.evidence_path),
+        )
+        self.assertEqual(code, 0)
+        self.assertIn("processing limit", result["reason"])
+
+    def test_authorized_status_has_scoped_receipt_and_reconfigure_is_idempotent(self):
+        first_time = dt.datetime(2026, 1, 2, tzinfo=dt.timezone.utc)
+        later = first_time + dt.timedelta(days=20)
+        with mock.patch.object(telemetry, "utc_now", return_value=first_time):
+            code, first = self.invoke(
+                "configure", "--consent", "on",
+                "--consent-evidence-file", str(self.evidence_path),
+            )
+        self.assertEqual(code, 0)
+        self.assertEqual(first["decision"], "authorized")
+        self.assertTrue(first["automatic_sending"])
+        receipt = first["authorization_receipt"]
+        self.assertEqual(receipt["prompt"], self.evidence["prompt"])
+        self.assertEqual(receipt["endpoint"], self.endpoint)
+
+        replacement = {"prompt": "different", "response": "yes", "source": "later task"}
+        self.evidence_path.write_text(json.dumps(replacement), encoding="utf-8")
+        with mock.patch.object(telemetry, "utc_now", return_value=later):
+            code, repeated = self.invoke(
+                "configure", "--consent", "on",
+                "--consent-evidence-file", str(self.evidence_path),
+            )
+        self.assertEqual(code, 0)
+        self.assertEqual(repeated["authorization_receipt"], receipt)
+        state = telemetry.load_state(self.state_path)
+        self.assertEqual(state["consent"]["consented_at"], receipt["consented_at"])
+        self.assertEqual(state["consent"]["evidence"], self.evidence)
+
+    def test_legacy_enabled_state_requires_confirmation_and_never_sends(self):
+        state = telemetry.empty_state()
+        state["consent"] = {
+            "enabled": True, "consented_at": "2026-01-02T00:00:00Z", "endpoint": self.endpoint,
+            "disclosure_version": "1", "retention_days": 30,
+        }
+        telemetry.save_state(self.state_path, state)
+        code, status = self.invoke("status")
+        self.assertEqual(code, 0)
+        self.assertEqual(status["decision"], "renewal_required")
+        self.assertEqual(status["reason"], "legacy_consent_requires_confirmation")
+        run_id = self.journal()
+        with mock.patch.object(telemetry, "submit_once") as send:
+            code, result = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+        self.assertEqual(code, 0)
+        self.assertFalse(result["ok"])
+        send.assert_not_called()
+
+    def test_explicit_off_is_declined_and_needs_no_evidence(self):
+        code, result = self.invoke("configure", "--consent", "off")
+        self.assertEqual(code, 0)
+        self.assertEqual(result["decision"], "declined")
+        self.assertFalse(result["automatic_sending"])
+        code, error = self.invoke(
+            "configure", "--consent", "off", "--consent-evidence-file", str(self.evidence_path),
+        )
+        self.assertEqual(code, 0)
+        self.assertFalse(error["ok"])
+
     def test_preview_has_strict_allowlist_and_no_sentinel_leakage(self):
         self.consent()
         usage = {"measurement_id": "worker-turn-1", "scope": "worker_turn", "source": "secret",
@@ -127,6 +220,25 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(payload["routes"][0]["usage"]["input_tokens"], 10)
         self.assertIsNone(payload["coordinator_usage"])
         self.assertEqual(payload["coordinator_usage_reason"], "no_measurements")
+
+    def test_consent_receipt_never_enters_wire_payload(self):
+        self.consent()
+        run_id = self.journal()
+        bodies = []
+
+        def capture(_endpoint, body):
+            bodies.append(body.decode("utf-8"))
+            return 202
+
+        with mock.patch.object(telemetry, "submit_once", side_effect=capture):
+            code, result = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+        self.assertEqual(code, 0)
+        self.assertEqual(result["status"], "sent")
+        encoded = bodies[0]
+        for value in self.evidence.values():
+            self.assertNotIn(value, encoded)
+        self.assertNotIn("authorization_receipt", encoded)
+        self.assertNotIn("automatic_sending", encoded)
 
     def test_consent_is_invalidated_by_endpoint_disclosure_or_retention_change(self):
         self.consent()
@@ -175,6 +287,29 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(second[1]["status"], "already_sent")
         self.assertEqual(send.call_count, 1)
         self.assertEqual(first[1]["event_id"], second[1]["event_id"])
+
+    def test_one_valid_receipt_authorizes_multiple_later_runs_without_reconfigure(self):
+        self.consent()
+        run_ids = [self.journal(), self.journal(task_type="bugfix")]
+        with mock.patch.object(telemetry, "submit_once", return_value=202) as send:
+            results = [
+                self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)[1]
+                for run_id in run_ids
+            ]
+        self.assertEqual([result["status"] for result in results], ["sent", "sent"])
+        self.assertEqual(send.call_count, 2)
+        status = self.invoke("status")[1]
+        self.assertEqual(status["decision"], "authorized")
+        self.assertTrue(status["automatic_sending"])
+
+    def test_decline_persists_when_endpoint_is_removed(self):
+        self.invoke("configure", "--consent", "off")
+        self.write_config(None)
+        code, result = self.invoke("status")
+        self.assertEqual(code, 0)
+        self.assertEqual(result["decision"], "declined")
+        self.assertEqual(result["reason"], "consent_off")
+        self.assertFalse(result["automatic_sending"])
 
     def test_retry_limit_is_three_and_backoff_is_persisted(self):
         self.consent()

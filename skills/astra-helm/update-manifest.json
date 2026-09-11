@@ -1,26 +1,26 @@
 {
-  "version": "1.7.0",
+  "version": "1.7.1",
   "notes": [
-    "Separate parent outcome from explicit delivered-work acceptance and categorical blocker reasons; clarify scope and native verification guidance.",
-    "Disclosure version 3 requires renewed telemetry consent. Deploy the updated receiver before updating clients; legacy payloads remain supported."
+    "After update installation, check telemetry separately and ask once for explicit automatic-send consent when needed; preserve valid consent and honor opt-outs.",
+    "Store bounded local question/response/source receipts, expose scoped authorization in local status, and require one confirmation for legacy receipt-free opt-ins. No receiver or wire-format change."
   ],
   "files": {
-    "SKILL.md": "89a13a932e3e9d5b3fd91bfa84db0f95891d4278e91d6a63f0b66582c375497e",
+    "SKILL.md": "a7185f8820da87786fe84be1daf195c1f462800344bb9e5679daef13dd957cb8",
     "agents/openai.yaml": "a2771e6e263020086d7675f5a84d413f9c43bda931bc6ce88adbda69ec5a9842",
-    "policy.json": "260494aaf3f827e7b9ea035d8793e847eeb0123f99e00aed8802eec9f681ee23",
+    "policy.json": "b3f74f1c9a5958b37203f7383b2409eb9055c76b41e83d1e88e20a386b349a6e",
     "references/execution-evidence.md": "e34780b68f82184b50229e49e2c0da73abfa70e403d370a3c85d0462504c964e",
     "references/large-work.md": "03e8a877b948a2407d1c142ff609c5202165978c6c5e4a22cca0c27d5ba11a01",
     "references/logging.md": "a34fce6db9e4436eeb2f5611f1dcc37e2fd0f986a06273c7931155e8132649c5",
-    "references/telemetry.md": "6abe4e7370fd6f64a2c2382675a8ba3f2a6ca21512ed78950c913c6cc2bee20d",
+    "references/telemetry.md": "8797d6131f40223efe52d9058ecc4e52687e10906f68adb20ec91e16fef067e2",
     "references/tuning.md": "c4ef082c1e96ebf788a1a639d1daf853994c16070e67387fb8df518676cbd735",
-    "references/updates.md": "430758f8a39820327ca5f719f1d3b682e1d5e088a47bd818681c7db7041d6ff4",
+    "references/updates.md": "f1ac5f15b61b2002ffd54a6330be64d8b4ccd5a865c3ebb5a30962242f2cefc0",
     "scripts/build_update_manifest.py": "eda17202a96e616d1d5083cf94fac8eb01b713fab28e7c88999b0aefb4b7437b",
     "scripts/journal.py": "67cd3282799f968f5b2a57f36fbb60780128e2d5912841966deff6dc8906b14f",
-    "scripts/telemetry.py": "8ad38fa05e7a2fb0c39211215c8e9640379bd66e95915d96341e280accf37aca",
+    "scripts/telemetry.py": "8b93abab42f9d6406924e7b69359e800245adee877e17ac710976c464fc9ba75",
     "scripts/test_journal.py": "45ca55a4a029867ac270f91fa3c8b9f28ae4a20e7955d3ea29a32e4ac57ea9ae",
-    "scripts/test_telemetry.py": "8b80ca838e31f0f9f5f7e481e9ce3ccf4a7c059385d65d27497dcaf9a7830f31",
-    "scripts/test_updater.py": "bdf56e6b836d3c8d9763a41950f352b4a162dcdeb943240e1af14574906f75fa",
-    "scripts/updater.py": "80ea371d7585db2e087695604ece1203d8a9347ab47317ee8bfc264ad67d10a9",
+    "scripts/test_telemetry.py": "a1ab47dd6d7fefbff3e1ba403366e6c95e8cfd943d0397a5a5a7933a852618bf",
+    "scripts/test_updater.py": "15888d98ed019f54818dcd99b27f828300c2ce47fea3f0215f98d2ec68490b60",
+    "scripts/updater.py": "ccf54a419ca6ab9529056c4656bdb296dc2f0029b805db40a9d280dbbe68b705",
     "telemetry-config.json": "463ee045fc6614ba8238b70319edc8304903e6024756031957494597075f482b"
   }
 }

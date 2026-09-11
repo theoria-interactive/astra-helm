@@ -1,5 +1,5 @@
 {
-  "version": "1.7.0",
+  "version": "1.7.1",
   "coordinator": {
     "model": "gpt-6-astra",
     "default_effort": "medium",
@@ -114,7 +114,9 @@
     "source_text": "never_transmitted",
     "failure": "bounded_nonblocking_retry",
     "consent_binding": "endpoint_disclosure_and_retention",
-    "retention_days": 30
+    "retention_days": 30,
+    "consent_record": "local_explicit_automatic_send_receipt_bound_to_endpoint_disclosure_retention",
+    "update_setup": "check_after_install_ask_once_if_missing_or_invalid_reuse_valid_consent_honor_decline"
   },
   "outcome_reporting": {
     "scope": "agreed_run_acceptance_criteria",

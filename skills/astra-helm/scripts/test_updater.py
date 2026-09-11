@@ -198,7 +198,23 @@ class UpdaterTests(unittest.TestCase):
         self.assertIn("unknown target collision", reasons)
 
     def test_install_preserves_settings_and_keeps_private_backup(self):
-        consent = '{"consent":{"enabled":false}}\n'
+        consent = json.dumps({
+            "schema_version": 1,
+            "consent": {
+                "enabled": True,
+                "automatic_sending": True,
+                "consented_at": "2026-09-09T00:00:00Z",
+                "endpoint": "https://example.test/v1/events",
+                "disclosure_version": "3",
+                "retention_days": 30,
+                "evidence": {
+                    "prompt": "May Astra Helm automatically send the disclosed telemetry?",
+                    "response": "Yes.",
+                    "source": "explicit user response in task",
+                },
+            },
+            "runs": {},
+        }, sort_keys=True) + "\n"
         (self.root / ".telemetry-state.json").write_text(consent)
         self.enable()
         files = self.cache()
@@ -213,6 +229,14 @@ class UpdaterTests(unittest.TestCase):
         self.assertEqual((backup / "policy.json").read_bytes(), self.old_files["policy.json"])
         self.assertEqual(updater.read_local_manifest(self.root)["version"], "1.5.0")
         self.assertIsNone(updater.load_state(self.root)["candidate"])
+        follow_up = result["follow_up"]
+        self.assertEqual(follow_up["action"], "check_telemetry_status")
+        self.assertFalse(follow_up["execute"])
+        self.assertEqual(follow_up["ask_separately_only_if_decision"], ["unset", "renewal_required"])
+        self.assertFalse(follow_up["installation_approval_is_telemetry_consent"])
+        self.assertEqual(follow_up["helper"], "scripts/telemetry.py")
+        self.assertEqual(follow_up["arguments"], ["status"])
+        self.assertNotIn(str(self.root), json.dumps(follow_up))
 
     def test_failed_mutation_rolls_back_replaced_and_removed_files(self):
         old = self.release_files("1.4.1", "old", {"obsolete.txt": b"old managed\n"})
