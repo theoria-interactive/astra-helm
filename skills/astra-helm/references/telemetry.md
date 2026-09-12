@@ -55,3 +55,11 @@ The sample contains only eligible closed execution runs since consent. Older com
 Use comparable task categories and policy versions; distinguish requested settings from sourced runtime evidence. A corrected defect is rework, not an enduring final-code penalty. Keep functional, quality, and unclassified corrections separate. Optional task characteristics are transmitted only if explicitly recorded as supported categories. Usage is exported only for a single complete measurement with a supported turn scope. Multiple measurements cannot establish non-overlap from journal IDs alone, so they remain null, as do ambiguous or incomplete counters, with a categorical reason.
 
 An open ingestion endpoint cannot establish that a real user consented, that a model ran, or that an event is honest. Treat contributions as untrusted observations, retain missing-data indicators, and validate proposed routing changes using targeted tests or benchmarks. Do not expose raw contributed events through public read endpoints or treat a high event count as evidence of causality.
+
+## Local provenance and apparent duplicates
+
+Use the installed helper and its existing delivery-state file for ordinary submissions. Do not create a scratch state, mint another event ID, or hand-post a rebuilt payload to retry a known run; a retry must reuse the recorded delivery ID and frozen payload. A deliberately separate installation has separate consent and state and must not be silently treated as the original sender.
+
+Retain the run ID and log root in the local handoff, and register a known fallback journal root when access permits. During analysis, match server event IDs to local delivery records, then inspect the corresponding journals. No matching local record means provenance is unresolved; the public receiver can also receive other installations' self-reports. Never infer a sender from a shared model/task category or timestamp.
+
+Identical categorical payloads with different event IDs are duplicate candidates, not proof of duplicate runs. Preserve them until source evidence establishes their relationship. Do not add content-based deletion or deduplication: independent runs can legitimately share every transmitted category. Describe the analyzed sample as submissions when uniqueness is unverified.

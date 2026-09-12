@@ -1,18 +1,18 @@
 {
-  "version": "1.7.1",
+  "version": "1.7.2",
   "notes": [
-    "After update installation, check telemetry separately and ask once for explicit automatic-send consent when needed; preserve valid consent and honor opt-outs.",
-    "Store bounded local question/response/source receipts, expose scoped authorization in local status, and require one confirmation for legacy receipt-free opt-ins. No receiver or wire-format change."
+    "Record substantive correction requests consistently; add early native-backend probes and explicit release/UI failure-state criteria.",
+    "Clarify fallback-root coverage, reuse of delivery state, and unresolved duplicate provenance. Routing, telemetry payload, and consent scope remain unchanged."
   ],
   "files": {
-    "SKILL.md": "a7185f8820da87786fe84be1daf195c1f462800344bb9e5679daef13dd957cb8",
+    "SKILL.md": "b4a709f81212db96cb381cbb8cec489e4a76dacb77c8e4a4f962ba1237d44160",
     "agents/openai.yaml": "a2771e6e263020086d7675f5a84d413f9c43bda931bc6ce88adbda69ec5a9842",
-    "policy.json": "b3f74f1c9a5958b37203f7383b2409eb9055c76b41e83d1e88e20a386b349a6e",
-    "references/execution-evidence.md": "e34780b68f82184b50229e49e2c0da73abfa70e403d370a3c85d0462504c964e",
+    "policy.json": "9e45ede2c839fd700f4009cc13a7b37a862fc60b2c9d81457ad88ae15e3a54a9",
+    "references/execution-evidence.md": "ddbbea0783d8b54fb32536e876ec60165948c36c753e0defa40910c31f6f7ccd",
     "references/large-work.md": "03e8a877b948a2407d1c142ff609c5202165978c6c5e4a22cca0c27d5ba11a01",
-    "references/logging.md": "a34fce6db9e4436eeb2f5611f1dcc37e2fd0f986a06273c7931155e8132649c5",
-    "references/telemetry.md": "8797d6131f40223efe52d9058ecc4e52687e10906f68adb20ec91e16fef067e2",
-    "references/tuning.md": "c4ef082c1e96ebf788a1a639d1daf853994c16070e67387fb8df518676cbd735",
+    "references/logging.md": "0452f9b533a28ae8cfa5b7cd99adbebc988d4079704e08b03931a4867bec4e4b",
+    "references/telemetry.md": "2c7b32f8763d79a9f3cba449c3830485f83a996c610e78339367a1a772d183e4",
+    "references/tuning.md": "0544e21be6bdc638221e875f6860b37dc23583abfbcdfc22ea1c4a7f86b785cb",
     "references/updates.md": "f1ac5f15b61b2002ffd54a6330be64d8b4ccd5a865c3ebb5a30962242f2cefc0",
     "scripts/build_update_manifest.py": "eda17202a96e616d1d5083cf94fac8eb01b713fab28e7c88999b0aefb4b7437b",
     "scripts/journal.py": "67cd3282799f968f5b2a57f36fbb60780128e2d5912841966deff6dc8906b14f",

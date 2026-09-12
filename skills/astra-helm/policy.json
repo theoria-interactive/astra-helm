@@ -1,5 +1,5 @@
 {
-  "version": "1.7.1",
+  "version": "1.7.2",
   "coordinator": {
     "model": "gpt-6-astra",
     "default_effort": "medium",
@@ -67,7 +67,8 @@
     "worktree_instruction_check": "on_entry_or_resume_then_only_when_relevant_inputs_change",
     "persistent_test_isolation": "verify_actual_destination_before_first_mutating_test_and_after_environment_changes",
     "additional_review": "requires_concrete_risk_or_evidence_gap",
-    "accepted_evidence_reuse": "invalidate_only_for_relevant_source_dependency_environment_change_or_new_finding"
+    "accepted_evidence_reuse": "invalidate_only_for_relevant_source_dependency_environment_change_or_new_finding",
+    "native_backend_probe": "early_representative_isolated_backend_probe_for_native_persistence_changes"
   },
   "routing_assessment": {
     "dimensions": [
@@ -99,7 +100,9 @@
     "fallback_roots": "register_explicit_known_roots_when_shared_registry_writable_otherwise_include_root_on_summary",
     "runtime_evidence": "record_sourced_observations_at_report_or_finish_when_available",
     "unknown_measurements": "null_with_reason",
-    "usage_aggregation": "preserve_measurement_scope_do_not_sum_overlapping_records"
+    "usage_aggregation": "preserve_measurement_scope_do_not_sum_overlapping_records",
+    "correction_events": "one_changes_requested_review_per_substantive_correction_round_even_with_replan",
+    "submission_provenance": "reuse_existing_delivery_state_and_register_known_fallback_roots"
   },
   "installer_updates": {
     "checks": "opt_in_weekly_on_skill_load",
