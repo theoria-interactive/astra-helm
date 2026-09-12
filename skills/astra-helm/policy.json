@@ -1,5 +1,5 @@
 {
-  "version": "1.7.2",
+  "version": "1.8.0",
   "coordinator": {
     "model": "gpt-6-astra",
     "default_effort": "medium",
@@ -111,15 +111,15 @@
     "failure": "continue_user_task"
   },
   "telemetry": {
-    "default": "off_until_separate_explicit_consent",
-    "scope": "closed_execution_runs_started_after_consent",
+    "default": "selective_post_run_approval",
+    "scope": "one_named_closed_execution_run_per_explicit_approval",
     "payload": "strict_categories_counters_and_random_delivery_id",
     "source_text": "never_transmitted",
     "failure": "bounded_nonblocking_retry",
     "consent_binding": "endpoint_disclosure_and_retention",
     "retention_days": 30,
-    "consent_record": "local_explicit_automatic_send_receipt_bound_to_endpoint_disclosure_retention",
-    "update_setup": "check_after_install_ask_once_if_missing_or_invalid_reuse_valid_consent_honor_decline"
+    "consent_record": "local_one_run_approval_bound_to_endpoint_disclosure_retention_with_legacy_automatic_receipt_compatibility",
+    "update_setup": "preserve_preference_do_not_ask_during_install_offer_selective_question_only_after_valuable_closed_run"
   },
   "outcome_reporting": {
     "scope": "agreed_run_acceptance_criteria",

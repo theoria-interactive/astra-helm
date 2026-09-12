@@ -1,26 +1,25 @@
 {
-  "version": "1.7.2",
+  "version": "1.8.0",
   "notes": [
-    "Record substantive correction requests consistently; add early native-backend probes and explicit release/UI failure-state criteria.",
-    "Clarify fallback-root coverage, reuse of delivery state, and unresolved duplicate provenance. Routing, telemetry payload, and consent scope remain unchanged."
+    "Use selective per-run telemetry approval after valuable closed runs; preserve valid automatic consent compatibility and delivery retry identity."
   ],
   "files": {
-    "SKILL.md": "b4a709f81212db96cb381cbb8cec489e4a76dacb77c8e4a4f962ba1237d44160",
+    "SKILL.md": "47a81a9eed2b26bb72a92af23603249c8502452fa56273e5f350974506a3e7ce",
     "agents/openai.yaml": "a2771e6e263020086d7675f5a84d413f9c43bda931bc6ce88adbda69ec5a9842",
-    "policy.json": "9e45ede2c839fd700f4009cc13a7b37a862fc60b2c9d81457ad88ae15e3a54a9",
+    "policy.json": "c9231641be0b8fce2312f90f770e55c87b2909ca06c999a0aafc2d0ff1b010f9",
     "references/execution-evidence.md": "ddbbea0783d8b54fb32536e876ec60165948c36c753e0defa40910c31f6f7ccd",
     "references/large-work.md": "03e8a877b948a2407d1c142ff609c5202165978c6c5e4a22cca0c27d5ba11a01",
     "references/logging.md": "0452f9b533a28ae8cfa5b7cd99adbebc988d4079704e08b03931a4867bec4e4b",
-    "references/telemetry.md": "2c7b32f8763d79a9f3cba449c3830485f83a996c610e78339367a1a772d183e4",
+    "references/telemetry.md": "82ecf45de26e62fdbffc55e1c0b4a8cf8925a027de46ea95e96fde2c227e38c4",
     "references/tuning.md": "0544e21be6bdc638221e875f6860b37dc23583abfbcdfc22ea1c4a7f86b785cb",
-    "references/updates.md": "f1ac5f15b61b2002ffd54a6330be64d8b4ccd5a865c3ebb5a30962242f2cefc0",
+    "references/updates.md": "eb5286d65e591b8f071df05908379748612def19da1bead917d47f3d47c9d05c",
     "scripts/build_update_manifest.py": "eda17202a96e616d1d5083cf94fac8eb01b713fab28e7c88999b0aefb4b7437b",
     "scripts/journal.py": "67cd3282799f968f5b2a57f36fbb60780128e2d5912841966deff6dc8906b14f",
-    "scripts/telemetry.py": "8b93abab42f9d6406924e7b69359e800245adee877e17ac710976c464fc9ba75",
+    "scripts/telemetry.py": "e4243f8c30393dda6a889ae3edb3a4917be4f68d2eeb27c8b633b3bef2fa4444",
     "scripts/test_journal.py": "45ca55a4a029867ac270f91fa3c8b9f28ae4a20e7955d3ea29a32e4ac57ea9ae",
-    "scripts/test_telemetry.py": "a1ab47dd6d7fefbff3e1ba403366e6c95e8cfd943d0397a5a5a7933a852618bf",
-    "scripts/test_updater.py": "15888d98ed019f54818dcd99b27f828300c2ce47fea3f0215f98d2ec68490b60",
-    "scripts/updater.py": "ccf54a419ca6ab9529056c4656bdb296dc2f0029b805db40a9d280dbbe68b705",
+    "scripts/test_telemetry.py": "307e082e5a8802efc78025a67b70beb68eb153a128bd4782ba9671be8a1285b4",
+    "scripts/test_updater.py": "e6bffd50d19fddf321d70f3a0a79a27a5b8e6f17bc2960ecfa388ff2ddac3d04",
+    "scripts/updater.py": "678dccba488c2d68f1babf309257d7ef68632afb71f244029e7f74fee98534a8",
     "telemetry-config.json": "463ee045fc6614ba8238b70319edc8304903e6024756031957494597075f482b"
   }
 }

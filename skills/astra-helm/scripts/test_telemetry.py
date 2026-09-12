@@ -116,6 +116,116 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("endpoint", result["reason"])
 
+    def test_one_run_approval_sends_only_the_named_closed_execution_run(self):
+        earlier = self.journal(started="2025-12-30T00:00:00Z")
+        later = self.journal(task_type="bugfix")
+        with mock.patch.object(telemetry, "submit_once", return_value=202) as send:
+            code, result = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", earlier, "--approve-run",
+            )
+            code_later, later_result = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", later,
+            )
+        self.assertEqual(code, 0)
+        self.assertEqual(result["status"], "sent")
+        self.assertEqual(code_later, 0)
+        self.assertFalse(later_result["ok"])
+        self.assertIn("has not been approved", later_result["reason"])
+        self.assertEqual(send.call_count, 1)
+        state = telemetry.load_state(self.state_path)
+        self.assertEqual(state["runs"][earlier]["approval"]["scope"], "one_run")
+        self.assertNotIn(later, state["runs"])
+
+    def test_one_run_approval_reuses_frozen_payload_for_retries(self):
+        run_id = self.journal()
+        current = [dt.datetime(2026, 1, 4, tzinfo=dt.timezone.utc)]
+        with mock.patch.object(telemetry, "utc_now", side_effect=lambda: current[0]), \
+             mock.patch.object(telemetry, "submit_once", side_effect=[telemetry.TelemetryError("failed"), 202]) as send:
+            first = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+            )
+            current[0] += dt.timedelta(minutes=2)
+            retry = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+        self.assertEqual(first[1]["status"], "delivery_failed")
+        self.assertEqual(retry[1]["status"], "sent")
+        self.assertEqual(send.call_count, 2)
+        state = telemetry.load_state(self.state_path)
+        self.assertEqual(state["runs"][run_id]["attempts"], 2)
+        self.assertIn("payload", state["runs"][run_id])
+
+    def test_one_run_renewal_preserves_delivery_state_and_sent_runs_stay_idempotent(self):
+        run_id = self.journal()
+        current = [dt.datetime(2026, 1, 4, tzinfo=dt.timezone.utc)]
+        with mock.patch.object(telemetry, "utc_now", side_effect=lambda: current[0]), \
+             mock.patch.object(telemetry, "submit_once", side_effect=telemetry.TelemetryError("failed")):
+            _code, failed = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run")
+        before = telemetry.load_state(self.state_path)["runs"][run_id]
+        event_id, frozen_payload = before["event_id"], before["payload"]
+        self.write_config(self.endpoint, disclosure="2")
+        current[0] += dt.timedelta(minutes=2)
+        with mock.patch.object(telemetry, "utc_now", side_effect=lambda: current[0]), \
+             mock.patch.object(telemetry, "submit_once", return_value=202) as send:
+            _code, blocked = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            _code, renewed = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+            )
+            self.write_config(self.endpoint, disclosure="3")
+            _code, duplicate = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+        self.assertEqual(failed["status"], "delivery_failed")
+        self.assertIn("has not been approved", blocked["reason"])
+        self.assertEqual(renewed["status"], "sent")
+        self.assertEqual(renewed["event_id"], event_id)
+        after = telemetry.load_state(self.state_path)["runs"][run_id]
+        self.assertEqual(after["attempts"], 2)
+        self.assertEqual(after["payload"], frozen_payload)
+        self.assertEqual(duplicate["status"], "already_sent")
+        send.assert_called_once()
+
+    def test_preview_inspects_an_unapproved_closed_run_without_persisting_consent(self):
+        run_id = self.journal()
+        with mock.patch.object(telemetry, "submit_once") as send:
+            code, preview = self.invoke("preview", "--log-root", str(self.logs), "--run-id", run_id)
+        self.assertEqual(code, 0)
+        self.assertEqual(preview["status"], "preview")
+        self.assertEqual(preview["payload"]["task_type"], "feature")
+        send.assert_not_called()
+        self.assertFalse(self.state_path.exists())
+
+    def test_preview_reuses_a_known_frozen_payload_after_a_failed_one_run_delivery(self):
+        run_id = self.journal(task_type="feature")
+        with mock.patch.object(telemetry, "submit_once", side_effect=telemetry.TelemetryError("failed")):
+            self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run")
+        path = self.logs / f"{run_id}.jsonl"
+        records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        records[0]["data"]["task_type"] = "bugfix"
+        path.write_text("".join(json.dumps(item) + "\n" for item in records), encoding="utf-8")
+        code, preview = self.invoke("preview", "--log-root", str(self.logs), "--run-id", run_id)
+        self.assertEqual(code, 0)
+        self.assertEqual(preview["payload"]["task_type"], "feature")
+
+    def test_one_run_approval_rejects_open_or_nonexecution_runs_and_saved_optout(self):
+        open_run = self.journal()
+        open_path = self.logs / f"{open_run}.jsonl"
+        lines = open_path.read_text(encoding="utf-8").splitlines()
+        open_path.write_text("\n".join(lines[:-1]) + "\n", encoding="utf-8")
+        nonexecution = self.journal(kind="test")
+        with mock.patch.object(telemetry, "submit_once") as send:
+            _code, open_result = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", open_run, "--approve-run",
+            )
+            _code, test_result = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", nonexecution, "--approve-run",
+            )
+            self.invoke("configure", "--consent", "off")
+            declined_run = self.journal()
+            _code, declined_result = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", declined_run, "--approve-run",
+            )
+        self.assertIn("incomplete", open_result["reason"])
+        self.assertIn("not eligible", test_result["reason"])
+        self.assertIn("declined", declined_result["reason"])
+        send.assert_not_called()
+
     def test_configure_on_requires_bounded_explicit_evidence(self):
         code, result = self.invoke("configure", "--consent", "on")
         self.assertEqual(code, 0)
@@ -201,6 +311,23 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertFalse(error["ok"])
 
+    def test_ask_mode_replaces_automatic_consent_without_recording_an_optout(self):
+        self.consent()
+        code, result = self.invoke("configure", "--consent", "ask")
+        self.assertEqual(code, 0)
+        self.assertEqual(result["decision"], "ask")
+        self.assertEqual(result["reason"], "selective_run_approval")
+        self.assertFalse(result["automatic_sending"])
+        run_id = self.journal()
+        with mock.patch.object(telemetry, "submit_once", return_value=202) as send:
+            _code, missing = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            _code, approved = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+            )
+        self.assertIn("has not been approved", missing["reason"])
+        self.assertEqual(approved["status"], "sent")
+        send.assert_called_once()
+
     def test_preview_has_strict_allowlist_and_no_sentinel_leakage(self):
         self.consent()
         usage = {"measurement_id": "worker-turn-1", "scope": "worker_turn", "source": "secret",
@@ -256,13 +383,23 @@ class TelemetryTests(unittest.TestCase):
     def test_preconsent_run_and_nonexecution_runs_are_rejected(self):
         self.consent()
         before = self.journal(started="2026-01-01T00:00:00Z")
-        code, result = self.invoke("preview", "--log-root", str(self.logs), "--run-id", before)
+        code, result = self.invoke("submit", "--log-root", str(self.logs), "--run-id", before)
         self.assertEqual(code, 0)
         self.assertIn("before", result["reason"])
         for kind in ("test", "tuning", "synthetic"):
             run_id = self.journal(kind=kind)
-            code, _result = self.invoke("preview", "--log-root", str(self.logs), "--run-id", run_id)
+            code, _result = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
             self.assertEqual(code, 0)
+
+    def test_one_run_approval_can_cover_a_preautomatic_consent_run(self):
+        self.consent()
+        before = self.journal(started="2026-01-01T00:00:00Z")
+        with mock.patch.object(telemetry, "submit_once", return_value=202) as send:
+            _code, result = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", before, "--approve-run",
+            )
+        self.assertEqual(result["status"], "sent")
+        send.assert_called_once()
 
     def test_optout_stops_retry_without_network(self):
         self.consent()

@@ -502,13 +502,15 @@ def _backup(root: Path, baseline: dict, backup: Path) -> None:
 
 
 def telemetry_follow_up() -> dict:
-    """Describe the separate post-install consent check without executing it."""
+    """Describe the post-install telemetry behavior without prompting or sending."""
     return {
-        "action": "check_telemetry_status",
+        "action": "preserve_telemetry_preference",
         "helper": "scripts/telemetry.py",
         "arguments": ["status"],
         "execute": False,
-        "ask_separately_only_if_decision": ["unset", "renewal_required"],
+        "ask_during_install": False,
+        "selective_mode_command": ["configure", "--consent", "ask"],
+        "one_run_submission": ["submit", "--approve-run"],
         "installation_approval_is_telemetry_consent": False,
     }
 

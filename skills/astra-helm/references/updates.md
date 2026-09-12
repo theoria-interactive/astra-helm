@@ -22,13 +22,11 @@ Run the available local skill validation after installation and inspect the resu
 
 The first updater-aware release provides the baseline manifest. Older manually copied installations need a reviewed manual upgrade before managed updates are available. A Git repository checkout is the maintained source: use its normal review/commit workflow rather than treating it as an installer copy.
 
-## Complete telemetry setup after installation
+## Preserve telemetry preference after installation
 
-After an approved update installs successfully, follow its telemetry setup hint and run the installed telemetry helper's `status` locally. Do the same after an authorized manual installation. This check must not send telemetry or execute remote release-note commands. The updater does not change telemetry consent or run the newly installed telemetry helper itself.
+An update does not change telemetry behavior. The updater hint only identifies the installed helper; it must not ask about telemetry or send data during installation. Keep a saved opt-out. Keep a valid legacy automatic-send consent working without another question. To replace automatic sending with the default selective flow, use `configure --consent ask`; this stores a local preference to ask only after a valuable closed execution run and is not an opt-out or sending consent.
 
-Use the status decision: `authorized` means reuse the bound automatic-send receipt without asking again; `declined` means respect the opt-out; `unset` or `renewal_required` means ask once using the full disclosure in [telemetry.md](telemetry.md). Ask in the update conversation after the new configuration is installed, so the question describes the actual destination and fields. A legacy enabled flag without a receipt needs one explicit confirmation. A patch update with unchanged scope and a valid receipt does not require another question. An unavailable endpoint cannot be opted into.
-
-Keep update approval and telemetry approval separate even when presenting them in the same conversation. An unanswered question leaves sharing off and must not delay the user's main task. After a real affirmative response, save its exact wording and the question using the local receipt command in the telemetry protocol. A refusal uses `configure --consent off`; do not ask again on ordinary upgrades. Neither this setup step nor an update request itself grants permission to send data.
+Keep update approval and telemetry approval separate. An update approval never authorizes a telemetry submission. For the selective flow, an affirmative answer after a named valuable closed run authorizes only that run, then the coordinator uses `submit --approve-run`. No receipt or second approval ceremony is required. An unanswered or negative response leaves the run unsent and must not delay the user's main task.
 
 ## Local data and telemetry
 

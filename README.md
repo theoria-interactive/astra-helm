@@ -30,17 +30,15 @@ Version 1.6.0 in the original skills repository changes the updater source to th
 
 ## Optional performance sharing
 
-Telemetry is **off until separate explicit consent**. Eligible future completed or otherwise closed execution runs can submit a strictly allowlisted summary: policy version, coarse task categories, worker settings, review/correction counts, explicit delivered-work acceptance and blocker categories, and available scoped token measurements. No prompts, code, free-text logs, project names, local paths, repository URLs, persistent installation IDs, or local run IDs are transmitted.
+Telemetry is **off by default**. After a selectively valuable closed execution run, Astra may ask whether to share that run's strictly allowlisted summary: policy version, coarse task categories, worker settings, review/correction counts, explicit delivered-work acceptance and blocker categories, and available scoped token measurements. An affirmative authorizes that run and its bounded retries only. No prompts, code, free-text logs, project names, local paths, repository URLs, persistent installation IDs, or local run IDs are transmitted.
 
 The Theoria Interactive-operated Cloudflare endpoint is `https://telemetry.theoriainteractive.com/astrahelm/v1/events`. The application stores summaries and receipt times, not IP addresses or user-agent strings. Cloudflare still processes connection metadata; IP addresses are used transiently for rate limiting. This is minimized telemetry, not a promise of anonymity.
 
-Active rows are retained for 30 days with daily cleanup (up to one day of additional delay). D1 recovery history can retain deleted records for up to a further 30 days depending on the plan. Disabling sharing stops future sends and retries; it does not erase already received rows. No runs from before consent are backfilled. Endpoint/disclosure/retention changes require renewed consent.
+Active rows are retained for 30 days with daily cleanup (up to one day of additional delay). D1 recovery history can retain deleted records for up to a further 30 days depending on the plan. A saved opt-out stops future sends and retries; it does not erase already received rows. A per-run approval can cover the run that just completed but never enables historical backfill or another run. Endpoint/disclosure/retention changes require renewed approval before a retry.
 
 Read [the full disclosure and commands](skills/astra-helm/references/telemetry.md) before opting in. The [receiver](receiver/README.md) has no public data-read API. Contributions are untrusted self-reports; use comparable task types and explicit missing-data handling rather than treating acceptance rates as a model leaderboard.
 
-Outcome reporting distinguishes closure of the agreed task scope from acceptance of the work delivered. Optional blocker categories explain pending decisions, external approvals, environment limitations, unresolved defects, and verification gaps without transmitting free-text reasons. Version 1.7.0 expands the disclosure to version 3 and requires renewed telemetry consent; existing records are preserved.
-
-Version 1.7.1 adds a separate automatic-send consent step after update installation. A local receipt records the question, explicit answer, and reference; valid consent is reused across runs and ordinary upgrades, while an opt-out is respected. Legacy opt-ins without this receipt need one confirmation. The receipt stays local and is never sent to the receiver.
+Outcome reporting distinguishes closure of the agreed task scope from acceptance of the work delivered. Optional blocker categories explain pending decisions, external approvals, environment limitations, unresolved defects, and verification gaps without transmitting free-text reasons. Version 1.8.0 changes the default to selective post-run approval: no telemetry setup question appears at load or installation, and a simple approval sends only the named run. Existing valid automatic consents continue to work; `configure --consent ask` switches them to the selective flow without recording an opt-out.
 
 ## Astra Helm benchmarks
 

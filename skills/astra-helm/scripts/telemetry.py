@@ -245,6 +245,32 @@ def consent_matches(state: dict, config: dict) -> bool:
     )
 
 
+def opted_out(state: dict) -> bool:
+    """An explicit local refusal applies to every one-run submission too."""
+    consent = state.get("consent")
+    return bool(
+        isinstance(consent, dict)
+        and consent.get("invalidated") is not True
+        and (consent.get("mode") == "off" or (consent.get("mode") is None and consent.get("enabled") is False))
+    )
+
+
+def run_approval_matches(run_state: object, config: dict) -> bool:
+    """Validate a one-run authorization bound to the current public disclosure."""
+    if not isinstance(run_state, dict):
+        return False
+    approval = run_state.get("approval")
+    return bool(
+        isinstance(approval, dict)
+        and approval.get("scope") == "one_run"
+        and timestamp(approval.get("approved_at")) is not None
+        and approval.get("endpoint") == config["endpoint"]
+        and approval.get("disclosure_version") == config["disclosure_version"]
+        and approval.get("retention_days") == config["retention_days"]
+        and config["endpoint"] is not None
+    )
+
+
 def invalidate_changed_consent(state: dict, config: dict, now: dt.datetime) -> bool:
     consent = state.get("consent")
     if not isinstance(consent, dict) or consent.get("enabled") is not True:
@@ -279,7 +305,10 @@ def public_status(config: dict, state: dict) -> dict:
             reason = "consent_invalidated"
         else:
             reason = "consent_receipt_invalid"
-    elif isinstance(consent, dict) and consent.get("enabled") is False:
+    elif isinstance(consent, dict) and consent.get("mode") == "ask":
+        decision = "ask"
+        reason = "selective_run_approval"
+    elif opted_out(state):
         decision = "declined"
         reason = "consent_off"
     elif not configured:
@@ -318,6 +347,7 @@ def configure(config: dict, state: dict, choice: str, now: dt.datetime,
             return public_status(config, state)
         state["consent"] = {
             "enabled": True,
+            "mode": "automatic",
             "automatic_sending": True,
             "consented_at": timestamp_text(now),
             "endpoint": config["endpoint"],
@@ -325,13 +355,26 @@ def configure(config: dict, state: dict, choice: str, now: dt.datetime,
             "retention_days": config["retention_days"],
             "evidence": evidence,
         }
-    else:
+    elif choice == "off":
         if evidence is not None:
             raise TelemetryError("consent evidence is not accepted when disabling telemetry")
         state["consent"] = {
             "enabled": False,
+            "mode": "off",
             "automatic_sending": False,
             "disabled_at": timestamp_text(now),
+            "endpoint": config["endpoint"],
+            "disclosure_version": config["disclosure_version"],
+            "retention_days": config["retention_days"],
+        }
+    else:
+        if evidence is not None:
+            raise TelemetryError("consent evidence is not accepted when selecting per-run approval")
+        state["consent"] = {
+            "enabled": False,
+            "mode": "ask",
+            "automatic_sending": False,
+            "selected_at": timestamp_text(now),
             "endpoint": config["endpoint"],
             "disclosure_version": config["disclosure_version"],
             "retention_days": config["retention_days"],
@@ -643,32 +686,75 @@ def build_payload(records: list[dict], event_id: str) -> dict:
     return payload
 
 
-def prepare(config: dict, state: dict, log_root: Path, run_id: str, now: dt.datetime) -> tuple[dict, dict]:
-    if not consent_matches(state, config):
-        raise TelemetryError("telemetry consent is off or invalidated")
-    consent_time = timestamp(state["consent"]["consented_at"])
-    records = load_run(log_root, run_id)
-    start_time = timestamp(records[0].get("timestamp"))
-    if start_time is None:
-        raise TelemetryError("run journal is corrupt")
-    if start_time < consent_time:
-        raise TelemetryError("run started before the current telemetry consent")
-    run_state = state["runs"].get(run_id)
-    if not isinstance(run_state, dict):
-        run_state = {
-            "event_id": str(uuid.uuid4()),
-            "attempts": 0,
-            "next_retry_at": None,
-            "sent": False,
-        }
-        state["runs"][run_id] = run_state
+def checked_event_id(run_state: dict) -> str:
     try:
         event_id = str(uuid.UUID(run_state["event_id"]))
     except (KeyError, ValueError, AttributeError) as exc:
         raise TelemetryError("telemetry state run entry is malformed") from exc
     if event_id != run_state["event_id"]:
         raise TelemetryError("telemetry state run entry is malformed")
-    payload = build_payload(records, event_id)
+    return event_id
+
+
+def new_run_state() -> dict:
+    return {"event_id": str(uuid.uuid4()), "attempts": 0, "next_retry_at": None, "sent": False}
+
+
+def bind_one_run_approval(run_state: dict, config: dict, now: dt.datetime) -> None:
+    """Renew only the authorization binding; delivery identity and retry state stay fixed."""
+    run_state["approval"] = {
+        "scope": "one_run",
+        "approved_at": timestamp_text(now),
+        "endpoint": config["endpoint"],
+        "disclosure_version": config["disclosure_version"],
+        "retention_days": config["retention_days"],
+    }
+
+
+def prepare(config: dict, state: dict, log_root: Path, run_id: str, now: dt.datetime,
+            approve_run: bool = False, require_authorization: bool = True) -> tuple[dict, dict]:
+    records = load_run(log_root, run_id)
+    run_state = state["runs"].get(run_id)
+    if run_state is not None and not isinstance(run_state, dict):
+        raise TelemetryError("telemetry state run entry is malformed")
+    if not require_authorization:
+        if run_state is not None and run_state.get("payload") is not None:
+            validate_wire_payload(run_state["payload"])
+            return run_state["payload"], run_state
+        event_id = checked_event_id(run_state) if run_state is not None else str(uuid.uuid4())
+        return build_payload(records, event_id), run_state if run_state is not None else {"event_id": event_id}
+    if run_state is not None and run_state.get("sent") is True:
+        return build_payload(records, checked_event_id(run_state)), run_state
+
+    automatic = consent_matches(state, config)
+    one_run = run_approval_matches(run_state, config)
+    if opted_out(state):
+        raise TelemetryError("telemetry sharing is declined")
+    if approve_run and not one_run:
+        if config["endpoint"] is None:
+            raise TelemetryError("cannot approve a run until an HTTPS endpoint is configured")
+        if run_state is None:
+            run_state = new_run_state()
+            state["runs"][run_id] = run_state
+        else:
+            checked_event_id(run_state)
+        bind_one_run_approval(run_state, config, now)
+        one_run = True
+    elif not automatic and not one_run:
+        raise TelemetryError("this run has not been approved for telemetry")
+    if automatic and not one_run:
+        consent_time = timestamp(state["consent"]["consented_at"])
+        if consent_time is None:
+            raise TelemetryError("telemetry consent is off or invalidated")
+        start_time = timestamp(records[0].get("timestamp"))
+        if start_time is None:
+            raise TelemetryError("run journal is corrupt")
+        if start_time < consent_time:
+            raise TelemetryError("run started before the current telemetry consent")
+    if not isinstance(run_state, dict):
+        run_state = new_run_state()
+        state["runs"][run_id] = run_state
+    payload = build_payload(records, checked_event_id(run_state))
     return payload, run_state
 
 
@@ -696,8 +782,8 @@ def submit_once(endpoint: str, body: bytes) -> int:
 
 
 def command_submit(config: dict, state: dict, state_path: Path,
-                   log_root: Path, run_id: str, now: dt.datetime) -> dict:
-    payload, run_state = prepare(config, state, log_root, run_id, now)
+                   log_root: Path, run_id: str, now: dt.datetime, approve_run: bool = False) -> dict:
+    payload, run_state = prepare(config, state, log_root, run_id, now, approve_run)
     if run_state.get("sent") is True:
         return {"ok": True, "status": "already_sent", "event_id": run_state["event_id"]}
     attempts = run_state.get("attempts")
@@ -748,12 +834,15 @@ def parser() -> argparse.ArgumentParser:
     commands = result.add_subparsers(dest="command", required=True)
     commands.add_parser("status")
     configure_parser = commands.add_parser("configure")
-    configure_parser.add_argument("--consent", choices=("on", "off"), required=True)
+    configure_parser.add_argument("--consent", choices=("on", "off", "ask"), required=True)
     configure_parser.add_argument("--consent-evidence-file", type=Path)
     for name in ("preview", "submit"):
         selected = commands.add_parser(name)
         selected.add_argument("--log-root", type=Path, required=True)
         selected.add_argument("--run-id", required=True)
+        if name == "submit":
+            selected.add_argument("--approve-run", action="store_true",
+                                  help="Submit this one closed run after its explicit user approval.")
     return result
 
 
@@ -780,11 +869,12 @@ def main(argv: list[str] | None = None) -> int:
                 result = configure(config, state, args.consent, now, evidence)
                 changed = True
             elif args.command == "preview":
-                payload, _run_state = prepare(config, state, args.log_root, args.run_id, now)
+                payload, _run_state = prepare(config, state, args.log_root, args.run_id, now,
+                                               require_authorization=False)
                 result = {"ok": True, "status": "preview", "payload": payload}
-                changed = True
             else:
-                result = command_submit(config, state, args.state, args.log_root, args.run_id, now)
+                result = command_submit(config, state, args.state, args.log_root, args.run_id, now,
+                                        args.approve_run)
                 changed = True
             if changed:
                 save_state(args.state, state)
