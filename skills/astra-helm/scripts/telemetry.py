@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Consent-gated, minimized telemetry export for one finished Astra Helm run."""
+"""Explicitly invoked, minimized telemetry export for one finished Astra Helm run."""
 
 from __future__ import annotations
 
@@ -293,69 +293,33 @@ def invalidate_changed_consent(state: dict, config: dict, now: dt.datetime) -> b
 def public_status(config: dict, state: dict) -> dict:
     consent = state.get("consent")
     configured = config["endpoint"] is not None
-    enabled = consent_matches(state, config)
-    reason = None
-    decision = "authorized" if enabled else "unset"
-    if isinstance(consent, dict) and (consent.get("invalidated") is True
-                                     or consent.get("enabled") is True and not enabled):
-        decision = "renewal_required"
-        if consent.get("enabled") is True and "evidence" not in consent:
-            reason = "legacy_consent_requires_confirmation"
-        elif consent.get("invalidated") is True:
-            reason = "consent_invalidated"
-        else:
-            reason = "consent_receipt_invalid"
-    elif isinstance(consent, dict) and consent.get("mode") == "ask":
-        decision = "ask"
-        reason = "selective_run_approval"
-    elif opted_out(state):
+    if opted_out(state):
         decision = "declined"
         reason = "consent_off"
-    elif not configured:
-        reason = "endpoint_not_configured"
+    else:
+        decision = "explicit_only"
+        reason = "explicit_run_approval_required" if configured else "endpoint_not_configured"
     result = {
         "ok": True,
         "configured": configured,
-        "consent": "on" if enabled else "off",
+        "consent": "off",
         "decision": decision,
         "reason": reason,
         "endpoint": config["endpoint"],
         "disclosure_version": config["disclosure_version"],
         "retention_days": config["retention_days"],
-        "automatic_sending": enabled,
+        "automatic_sending": False,
     }
-    if enabled:
-        result["authorization_receipt"] = {
-            **consent["evidence"],
-            "consented_at": consent["consented_at"],
-            "endpoint": consent["endpoint"],
-            "disclosure_version": consent["disclosure_version"],
-            "retention_days": consent["retention_days"],
-        }
     return result
 
 
 def configure(config: dict, state: dict, choice: str, now: dt.datetime,
               evidence: dict | None = None) -> dict:
-    if choice == "on":
-        if config["endpoint"] is None:
-            raise TelemetryError("cannot opt in until an HTTPS endpoint is configured")
-        if evidence is None:
-            raise TelemetryError("--consent-evidence-file is required when enabling automatic telemetry")
-        evidence = validate_consent_evidence(evidence)
-        if consent_matches(state, config):
-            return public_status(config, state)
-        state["consent"] = {
-            "enabled": True,
-            "mode": "automatic",
-            "automatic_sending": True,
-            "consented_at": timestamp_text(now),
-            "endpoint": config["endpoint"],
-            "disclosure_version": config["disclosure_version"],
-            "retention_days": config["retention_days"],
-            "evidence": evidence,
-        }
-    elif choice == "off":
+    if choice != "off":
+        raise TelemetryError(
+            "automatic and selective consent modes are disabled; use submit --approve-run for one named run"
+        )
+    if choice == "off":
         if evidence is not None:
             raise TelemetryError("consent evidence is not accepted when disabling telemetry")
         state["consent"] = {
@@ -363,18 +327,6 @@ def configure(config: dict, state: dict, choice: str, now: dt.datetime,
             "mode": "off",
             "automatic_sending": False,
             "disabled_at": timestamp_text(now),
-            "endpoint": config["endpoint"],
-            "disclosure_version": config["disclosure_version"],
-            "retention_days": config["retention_days"],
-        }
-    else:
-        if evidence is not None:
-            raise TelemetryError("consent evidence is not accepted when selecting per-run approval")
-        state["consent"] = {
-            "enabled": False,
-            "mode": "ask",
-            "automatic_sending": False,
-            "selected_at": timestamp_text(now),
             "endpoint": config["endpoint"],
             "disclosure_version": config["disclosure_version"],
             "retention_days": config["retention_days"],
@@ -529,10 +481,12 @@ def validate_wire_payload(payload: object) -> bytes:
     routes = payload["routes"]
     if not isinstance(routes, list) or len(routes) != payload["worker_count"]:
         raise TelemetryError("frozen telemetry payload is malformed")
-    route_keys = {"model", "effort", "actual_model", "actual_effort", "functional_corrections",
-                  "quality_corrections", "unclassified_corrections", "final_verdict", "usage", "usage_reason"}
+    route_required = {"model", "effort", "actual_model", "actual_effort", "functional_corrections",
+                      "quality_corrections", "unclassified_corrections", "final_verdict", "usage", "usage_reason"}
+    route_optional = {"correction_rounds"}
     for route in routes:
-        if not isinstance(route, dict) or set(route) != route_keys:
+        if (not isinstance(route, dict) or not route_required.issubset(route)
+                or not set(route).issubset(route_required | route_optional)):
             raise TelemetryError("frozen telemetry payload is malformed")
         if route["model"] not in MODELS | {"unknown"} or route["effort"] not in EFFORTS | {"unknown"}:
             raise TelemetryError("frozen telemetry payload is malformed")
@@ -544,6 +498,15 @@ def validate_wire_payload(payload: object) -> bytes:
             raise TelemetryError("frozen telemetry payload is malformed")
         for key in ("functional_corrections", "quality_corrections", "unclassified_corrections"):
             if not bounded_integer(route[key], MAX_CORRECTION_COUNT):
+                raise TelemetryError("frozen telemetry payload is malformed")
+        if "correction_rounds" in route:
+            rounds = route["correction_rounds"]
+            functional = route["functional_corrections"]
+            quality = route["quality_corrections"]
+            unclassified = route["unclassified_corrections"]
+            if (not bounded_integer(rounds, MAX_CORRECTION_COUNT)
+                    or rounds < max(functional, quality) + unclassified
+                    or rounds > functional + quality + unclassified):
                 raise TelemetryError("frozen telemetry payload is malformed")
         validate_wire_usage(route["usage"], route["usage_reason"])
     validate_wire_usage(payload["coordinator_usage"], payload["coordinator_usage_reason"])
@@ -631,6 +594,9 @@ def build_payload(records: list[dict], event_id: str) -> dict:
             "functional_corrections": counts["functional"],
             "quality_corrections": counts["quality"],
             "unclassified_corrections": counts["unclassified"],
+            "correction_rounds": sum(
+                review.get("verdict") == "changes_requested" for review in relevant_reviews
+            ),
             "final_verdict": mapped(relevant_reviews[-1].get("verdict") if relevant_reviews else None, VERDICTS),
             "usage": usage,
             "usage_reason": usage_reason,
@@ -723,38 +689,27 @@ def prepare(config: dict, state: dict, log_root: Path, run_id: str, now: dt.date
             return run_state["payload"], run_state
         event_id = checked_event_id(run_state) if run_state is not None else str(uuid.uuid4())
         return build_payload(records, event_id), run_state if run_state is not None else {"event_id": event_id}
+    if not approve_run:
+        raise TelemetryError("submit requires --approve-run for this invocation")
     if run_state is not None and run_state.get("sent") is True:
+        if run_state.get("payload") is not None:
+            validate_wire_payload(run_state["payload"])
+            return run_state["payload"], run_state
         return build_payload(records, checked_event_id(run_state)), run_state
 
-    automatic = consent_matches(state, config)
-    one_run = run_approval_matches(run_state, config)
-    if opted_out(state):
-        raise TelemetryError("telemetry sharing is declined")
-    if approve_run and not one_run:
-        if config["endpoint"] is None:
-            raise TelemetryError("cannot approve a run until an HTTPS endpoint is configured")
-        if run_state is None:
-            run_state = new_run_state()
-            state["runs"][run_id] = run_state
-        else:
-            checked_event_id(run_state)
-        bind_one_run_approval(run_state, config, now)
-        one_run = True
-    elif not automatic and not one_run:
-        raise TelemetryError("this run has not been approved for telemetry")
-    if automatic and not one_run:
-        consent_time = timestamp(state["consent"]["consented_at"])
-        if consent_time is None:
-            raise TelemetryError("telemetry consent is off or invalidated")
-        start_time = timestamp(records[0].get("timestamp"))
-        if start_time is None:
-            raise TelemetryError("run journal is corrupt")
-        if start_time < consent_time:
-            raise TelemetryError("run started before the current telemetry consent")
+    if config["endpoint"] is None:
+        raise TelemetryError("cannot approve a run until an HTTPS endpoint is configured")
     if not isinstance(run_state, dict):
         run_state = new_run_state()
         state["runs"][run_id] = run_state
-    payload = build_payload(records, checked_event_id(run_state))
+    else:
+        checked_event_id(run_state)
+    bind_one_run_approval(run_state, config, now)
+    payload = run_state.get("payload")
+    if payload is not None:
+        validate_wire_payload(payload)
+    else:
+        payload = build_payload(records, checked_event_id(run_state))
     return payload, run_state
 
 
@@ -853,20 +808,13 @@ def main(argv: list[str] | None = None) -> int:
         with state_lock(args.state):
             state = load_state(args.state)
             now = utc_now()
-            changed = invalidate_changed_consent(state, config, now)
+            changed = False
             if args.command == "status":
                 result = public_status(config, state)
             elif args.command == "configure":
-                evidence = None
-                if args.consent == "on":
-                    if config["endpoint"] is None:
-                        raise TelemetryError("cannot opt in until an HTTPS endpoint is configured")
-                    if args.consent_evidence_file is None:
-                        raise TelemetryError("--consent-evidence-file is required when enabling automatic telemetry")
-                    evidence = read_consent_evidence(args.consent_evidence_file)
-                elif args.consent_evidence_file is not None:
-                    raise TelemetryError("--consent-evidence-file is only valid with --consent on")
-                result = configure(config, state, args.consent, now, evidence)
+                if args.consent_evidence_file is not None:
+                    raise TelemetryError("consent evidence files are no longer accepted")
+                result = configure(config, state, args.consent, now)
                 changed = True
             elif args.command == "preview":
                 payload, _run_state = prepare(config, state, args.log_root, args.run_id, now,

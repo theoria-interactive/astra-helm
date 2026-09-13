@@ -29,6 +29,8 @@ BLOCKER_REASONS = {
     "unresolved_defect", "verification_gap",
 }
 DELIVERED_WORK_STATUSES = {"accepted", "changes_requested", "not_reviewed"}
+ASSIGNMENT_DISPOSITIONS = {"superseded", "cancelled"}
+MAX_ASSIGNMENT_DISPOSITIONS = 64
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -137,6 +139,17 @@ def validate_event(event: str, data: dict) -> None:
             raise JournalError(
                 "finish delivered_work_status must be accepted, changes_requested, or not_reviewed"
             )
+        if "assignment_dispositions" in data:
+            dispositions = data["assignment_dispositions"]
+            if (not isinstance(dispositions, dict)
+                    or len(dispositions) > MAX_ASSIGNMENT_DISPOSITIONS
+                    or any(not nonempty_string(assignment_id)
+                           or not isinstance(disposition, str)
+                           or disposition not in ASSIGNMENT_DISPOSITIONS
+                           for assignment_id, disposition in dispositions.items())):
+                raise JournalError(
+                    "finish assignment_dispositions must map assignment IDs to superseded or cancelled"
+                )
     if event == "runtime":
         validate_runtime(data)
 
@@ -475,6 +488,12 @@ def summarize_file(path: Path) -> tuple[dict | None, list[str], list[dict]]:
     replans = [record for record in valid_events if record["event"] == "replan"]
     feedback = [record["data"] for record in valid_events if record["event"] == "feedback"]
     runtime_records = [record for record in valid_events if record["event"] == "runtime"]
+    reviews_by_assignment: dict[object, list[dict]] = {}
+    for review in reviews:
+        reviews_by_assignment.setdefault(review["data"]["assignment_id"], []).append(review)
+    assignment_dispositions = (
+        finish["data"].get("assignment_dispositions", {}) if finish else {}
+    )
     policy = start.get("policy")
     policy_version = policy.get("version") if isinstance(policy, dict) else None
     if policy_version is not None and not isinstance(policy_version, (str, int, float)):
@@ -553,6 +572,14 @@ def summarize_file(path: Path) -> tuple[dict | None, list[str], list[dict]]:
             "settings_status": settings_status,
             "runtime_sources": sorted({item["source"] for item in evidence}),
             "usage_evidence": [item["usage"] for item in evidence if isinstance(item.get("usage"), dict)],
+            "latest_review": (
+                {
+                    "verdict": reviews_by_assignment[data["assignment_id"]][-1]["data"]["verdict"],
+                    "timestamp": reviews_by_assignment[data["assignment_id"]][-1]["timestamp"],
+                }
+                if reviews_by_assignment.get(data["assignment_id"]) else None
+            ),
+            "assignment_disposition": assignment_dispositions.get(data["assignment_id"]),
         })
 
     expected_targets = {"coordinator", *(route["assignment_id"] for route in route_rows)}
@@ -587,15 +614,29 @@ def summarize_file(path: Path) -> tuple[dict | None, list[str], list[dict]]:
         row["blocker_reasons"] = finish["data"]["blocker_reasons"]
     if finish and "delivered_work_status" in finish["data"]:
         row["delivered_work_status"] = finish["data"]["delivered_work_status"]
+    if finish and "assignment_dispositions" in finish["data"]:
+        row["assignment_dispositions"] = finish["data"]["assignment_dispositions"]
+        dispatched_ids = {route["assignment_id"] for route in route_rows}
+        for assignment_id in sorted(set(assignment_dispositions) - dispatched_ids):
+            warnings.append(
+                f"{path.name}: finish disposition names unknown assignment: {assignment_id}"
+            )
+    if finish and finish["data"].get("delivered_work_status") == "accepted":
+        for route in route_rows:
+            latest = route["latest_review"]
+            if ((latest is None or latest["verdict"] != "accepted")
+                    and route["assignment_disposition"] not in ASSIGNMENT_DISPOSITIONS):
+                verdict = "unknown" if latest is None else latest["verdict"]
+                warnings.append(
+                    f"{path.name}: accepted closure has unresolved assignment "
+                    f"{route['assignment_id']} (latest review: {verdict})"
+                )
     group_items = []
-    reviews_by_assignment: dict[object, list[str]] = {}
-    for review in reviews:
-        data = review["data"]
-        reviews_by_assignment.setdefault(data["assignment_id"], []).append(data["verdict"])
     aggregate_dispatches = dispatches if not corrupt and start_data.get("kind", "execution") == "execution" else []
     for dispatch in aggregate_dispatches:
         data = dispatch["data"]
-        verdicts = reviews_by_assignment.get(data["assignment_id"], [])
+        verdicts = [review["data"]["verdict"]
+                    for review in reviews_by_assignment.get(data["assignment_id"], [])]
         group_items.append({
             "requested_model": data["model"],
             "requested_effort": data["effort"],

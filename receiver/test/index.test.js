@@ -26,6 +26,7 @@ function event(overrides = {}) {
         functional_corrections: 0,
         quality_corrections: 0,
         unclassified_corrections: 0,
+        correction_rounds: 0,
         final_verdict: "accepted",
         usage: {
           input_tokens: 10,
@@ -149,6 +150,36 @@ test("rejects unknown fields recursively and invalid counter relationships", () 
   const unsafe = event();
   unsafe.routes[0].usage.input_tokens = 1_000_000_000_001;
   assert.equal(validateTelemetryEvent(unsafe), false);
+});
+
+test("accepts legacy routes without correction_rounds and bounds consistent totals", () => {
+  const legacy = event();
+  delete legacy.routes[0].correction_rounds;
+  assert.equal(validateTelemetryEvent(legacy), true);
+
+  const both = event();
+  Object.assign(both.routes[0], {
+    functional_corrections: 2,
+    quality_corrections: 3,
+    unclassified_corrections: 1,
+    correction_rounds: 4,
+  });
+  assert.equal(validateTelemetryEvent(both), true);
+
+  for (const correction_rounds of [-1, 3, 7, 1_001, 1.5]) {
+    const invalid = structuredClone(both);
+    invalid.routes[0].correction_rounds = correction_rounds;
+    assert.equal(validateTelemetryEvent(invalid), false);
+  }
+
+  const unclassifiedCannotOverlap = event();
+  Object.assign(unclassifiedCannotOverlap.routes[0], {
+    functional_corrections: 1,
+    quality_corrections: 1,
+    unclassified_corrections: 1,
+    correction_rounds: 1,
+  });
+  assert.equal(validateTelemetryEvent(unclassifiedCannotOverlap), false);
 });
 
 test("requires one route record for each reported worker", () => {
@@ -304,7 +335,9 @@ test("health and privacy expose no database rows", async () => {
   const disclosure = await (await worker.fetch(
     new Request("https://telemetry.example/privacy"), env,
   )).json();
-  assert.equal(disclosure.disclosure_version, "3");
+  assert.equal(disclosure.disclosure_version, "4");
+  assert.ok(disclosure.accepted_fields.route.includes("correction_rounds"));
+  assert.deepEqual(disclosure.accepted_fields.route_optional, ["correction_rounds"]);
   assert.deepEqual(
     new Set(disclosure.accepted_fields.blocker_reasons),
     new Set(["pending_decision", "external_approval", "environment_limitation", "unresolved_defect", "verification_gap"]),

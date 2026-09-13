@@ -81,7 +81,7 @@ const TOP_OPTIONAL_KEYS = new Set([
   "blocker_reasons",
   "delivered_work_status",
 ]);
-const ROUTE_KEYS = new Set([
+const ROUTE_REQUIRED_KEYS = new Set([
   "model",
   "effort",
   "actual_model",
@@ -93,6 +93,7 @@ const ROUTE_KEYS = new Set([
   "usage",
   "usage_reason",
 ]);
+const ROUTE_OPTIONAL_KEYS = new Set(["correction_rounds"]);
 const USAGE_KEYS = new Set([
   "input_tokens",
   "cached_input_tokens",
@@ -145,13 +146,27 @@ function validateUsagePair(usage, reason) {
 }
 
 function validateRoute(route) {
-  if (!hasExactKeys(route, ROUTE_KEYS)) return false;
+  if (!hasExactKeys(route, ROUTE_REQUIRED_KEYS, ROUTE_OPTIONAL_KEYS)) return false;
   if (!MODELS.has(route.model) || !EFFORTS.has(route.effort)) return false;
   if (route.actual_model !== null && !MODELS.has(route.actual_model)) return false;
   if (route.actual_effort !== null && !EFFORTS.has(route.actual_effort)) return false;
   if (!isIntegerInRange(route.functional_corrections, 1_000)) return false;
   if (!isIntegerInRange(route.quality_corrections, 1_000)) return false;
   if (!isIntegerInRange(route.unclassified_corrections, 1_000)) return false;
+  if (Object.hasOwn(route, "correction_rounds")) {
+    const minimumRounds = Math.max(
+      route.functional_corrections,
+      route.quality_corrections,
+    ) + route.unclassified_corrections;
+    const maximumRounds = route.functional_corrections
+      + route.quality_corrections
+      + route.unclassified_corrections;
+    if (
+      !isIntegerInRange(route.correction_rounds, 1_000) ||
+      route.correction_rounds < minimumRounds ||
+      route.correction_rounds > maximumRounds
+    ) return false;
+  }
   if (!VERDICTS.has(route.final_verdict)) return false;
   return validateUsagePair(route.usage, route.usage_reason);
 }
@@ -373,7 +388,7 @@ async function postEvent(request, env) {
 const PRIVACY_DISCLOSURE = {
   service: "Astra Helm opt-in telemetry receiver",
   schema_version: 1,
-  disclosure_version: "3",
+  disclosure_version: "4",
   operator: "This endpoint is operated by Theoria Interactive, owner of the Astra Helm repository.",
   purpose: "Aggregate categorical routing outcomes to improve Astra Helm defaults.",
   trust: "Events are untrusted, opt-in self-reports; the server cannot prove user consent.",
@@ -398,7 +413,9 @@ const PRIVACY_DISCLOSURE = {
       "blocker_reasons",
       "delivered_work_status",
     ],
-    route: [...ROUTE_KEYS],
+    route: [...ROUTE_REQUIRED_KEYS, ...ROUTE_OPTIONAL_KEYS],
+    route_required: [...ROUTE_REQUIRED_KEYS],
+    route_optional: [...ROUTE_OPTIONAL_KEYS],
     usage: [...USAGE_KEYS],
     blocker_reasons: [...BLOCKER_REASONS],
     delivered_work_status: [...DELIVERED_WORK_STATUSES],

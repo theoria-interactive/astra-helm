@@ -1,25 +1,25 @@
 {
-  "version": "1.8.0",
+  "version": "1.9.0",
   "notes": [
-    "Use selective per-run telemetry approval after valuable closed runs; preserve valid automatic consent compatibility and delivery retry identity."
+    "Improve distinct correction counts, assignment closure diagnostics, and integration guidance."
   ],
   "files": {
-    "SKILL.md": "47a81a9eed2b26bb72a92af23603249c8502452fa56273e5f350974506a3e7ce",
+    "SKILL.md": "ab20156716734795990a80489d79e3b4637de5bac826f82b1e92db4431fbfa95",
     "agents/openai.yaml": "a2771e6e263020086d7675f5a84d413f9c43bda931bc6ce88adbda69ec5a9842",
-    "policy.json": "c9231641be0b8fce2312f90f770e55c87b2909ca06c999a0aafc2d0ff1b010f9",
+    "policy.json": "b12be7bb3654dfbddf552f80e5033e326ab25e1a9050fcf28b7e7e88c2d9a43e",
     "references/execution-evidence.md": "ddbbea0783d8b54fb32536e876ec60165948c36c753e0defa40910c31f6f7ccd",
     "references/large-work.md": "03e8a877b948a2407d1c142ff609c5202165978c6c5e4a22cca0c27d5ba11a01",
-    "references/logging.md": "0452f9b533a28ae8cfa5b7cd99adbebc988d4079704e08b03931a4867bec4e4b",
-    "references/telemetry.md": "82ecf45de26e62fdbffc55e1c0b4a8cf8925a027de46ea95e96fde2c227e38c4",
-    "references/tuning.md": "0544e21be6bdc638221e875f6860b37dc23583abfbcdfc22ea1c4a7f86b785cb",
-    "references/updates.md": "eb5286d65e591b8f071df05908379748612def19da1bead917d47f3d47c9d05c",
+    "references/logging.md": "4d8f7f1e43542a04ff9d37c5eba2dd8d1908d17bd1d0dfbc8b6b89a672356b81",
+    "references/telemetry.md": "0bae3c9a8bb293df225abfdeed82aa19e701e71663c39662b93e9bcb438e0b1e",
+    "references/tuning.md": "e6ca4771cb23be3df596005e80cda3e5dc9df7851ca4c418977f37d77cbc1d3a",
+    "references/updates.md": "91f640c341f7fdb4bdab1956af829e17f7ef02b6ec8016ebbb009c22fd7c6541",
     "scripts/build_update_manifest.py": "eda17202a96e616d1d5083cf94fac8eb01b713fab28e7c88999b0aefb4b7437b",
-    "scripts/journal.py": "67cd3282799f968f5b2a57f36fbb60780128e2d5912841966deff6dc8906b14f",
-    "scripts/telemetry.py": "e4243f8c30393dda6a889ae3edb3a4917be4f68d2eeb27c8b633b3bef2fa4444",
-    "scripts/test_journal.py": "45ca55a4a029867ac270f91fa3c8b9f28ae4a20e7955d3ea29a32e4ac57ea9ae",
-    "scripts/test_telemetry.py": "307e082e5a8802efc78025a67b70beb68eb153a128bd4782ba9671be8a1285b4",
-    "scripts/test_updater.py": "e6bffd50d19fddf321d70f3a0a79a27a5b8e6f17bc2960ecfa388ff2ddac3d04",
-    "scripts/updater.py": "678dccba488c2d68f1babf309257d7ef68632afb71f244029e7f74fee98534a8",
-    "telemetry-config.json": "463ee045fc6614ba8238b70319edc8304903e6024756031957494597075f482b"
+    "scripts/journal.py": "fcded56262d35161beff14ed73144de4dabb9be480464045b346d896d9a25810",
+    "scripts/telemetry.py": "27dcc7672e2936132feda6122838ba4628a81a2516f9af94f7ea62820393f533",
+    "scripts/test_journal.py": "4a97f730e66df7f65499aca5f3856f3d1ca3aafb452ae87a09f4696f407af4db",
+    "scripts/test_telemetry.py": "80ef6b53ec3637f48afcfb0a0b1c92d4e63edb18eab48a71b14a9c80d2ec68f0",
+    "scripts/test_updater.py": "2d283f2aa0877a368f075577e5484df38e9026daae42f7e5828da7b22d451162",
+    "scripts/updater.py": "80ea371d7585db2e087695604ece1203d8a9347ab47317ee8bfc264ad67d10a9",
+    "telemetry-config.json": "d0fd7b73ad27caa401d416b031ea23950cc7cfa382ec5b779761e83c5af98bbd"
   }
 }

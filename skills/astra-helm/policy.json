@@ -1,5 +1,5 @@
 {
-  "version": "1.8.0",
+  "version": "1.9.0",
   "coordinator": {
     "model": "gpt-6-astra",
     "default_effort": "medium",
@@ -94,7 +94,8 @@
     "material_findings_require_correction": true,
     "corrected_defects": "count_as_rework_not_final_artifact_penalty",
     "new_requirements": "identify_separately_from_original_noncompliance",
-    "style_preferences": "not_mandatory_without_concrete_impact"
+    "style_preferences": "not_mandatory_without_concrete_impact",
+    "integration_preflight": "affected_consumers_state_invariants_and_early_representative_probe_when_relevant"
   },
   "history_collection": {
     "fallback_roots": "register_explicit_known_roots_when_shared_registry_writable_otherwise_include_root_on_summary",
@@ -102,7 +103,8 @@
     "unknown_measurements": "null_with_reason",
     "usage_aggregation": "preserve_measurement_scope_do_not_sum_overlapping_records",
     "correction_events": "one_changes_requested_review_per_substantive_correction_round_even_with_replan",
-    "submission_provenance": "reuse_existing_delivery_state_and_register_known_fallback_roots"
+    "submission_provenance": "reuse_existing_delivery_state_and_register_known_fallback_roots",
+    "correction_rounds": "distinct_changes_requested_reviews_separate_from_overlapping_categories"
   },
   "installer_updates": {
     "checks": "opt_in_weekly_on_skill_load",
@@ -111,20 +113,22 @@
     "failure": "continue_user_task"
   },
   "telemetry": {
-    "default": "selective_post_run_approval",
-    "scope": "one_named_closed_execution_run_per_explicit_approval",
+    "default": "explicit_user_request_only",
+    "ordinary_use": "silent_no_prompt_status_preview_submit_or_retry",
+    "scope": "named_closed_execution_runs_specifically_requested_by_user",
     "payload": "strict_categories_counters_and_random_delivery_id",
     "source_text": "never_transmitted",
-    "failure": "bounded_nonblocking_retry",
+    "failure": "one_bounded_attempt_per_requested_invocation_no_automatic_retry",
     "consent_binding": "endpoint_disclosure_and_retention",
     "retention_days": 30,
-    "consent_record": "local_one_run_approval_bound_to_endpoint_disclosure_retention_with_legacy_automatic_receipt_compatibility",
-    "update_setup": "preserve_preference_do_not_ask_during_install_offer_selective_question_only_after_valuable_closed_run"
+    "consent_record": "current_explicit_request_required_even_with_legacy_or_saved_approval",
+    "update_setup": "no_telemetry_follow_up_or_hint"
   },
   "outcome_reporting": {
     "scope": "agreed_run_acceptance_criteria",
     "delivered_work_status": "explicit_integration_review_separate_from_parent_outcome",
     "blocker_reasons": "explicit_categories_only_no_prose_inference",
-    "legacy_missing_fields": "unknown_not_backfilled"
+    "legacy_missing_fields": "unknown_not_backfilled",
+    "assignment_closure": "latest_review_and_explicit_disposition_no_acceptance_inferred_from_parent"
   }
 }

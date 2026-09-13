@@ -4,7 +4,7 @@ Use this reference at skill load and when the user asks to check or install an A
 
 ## Consent and frequency
 
-First inspect local update status using `scripts/updater.py status`. If the installer has not chosen a preference, ask once whether Astra Helm may check its official GitHub repository for updates about once a week when used. Explain that this contacts GitHub and does not send routing logs, prompts, source code, or performance telemetry. GitHub still receives normal connection/request metadata. The choice concerns update checks only; it does not authorize installing code or instructions.
+First inspect local update status using `scripts/updater.py status`. If the installer has not chosen a preference, ask once whether Astra Helm may check its official GitHub repository for updates about once a week when used. Explain that this contacts GitHub to check release metadata. GitHub still receives normal connection/request metadata. The choice concerns update checks only; it does not authorize installing code or instructions.
 
 Save an explicit yes with `configure --checks on`, or no with `configure --checks off`. If the user does not answer, leave the preference unset and continue the original task; do not repeat the question within the same conversation. Honor an existing preference without asking again. If even local preference storage is unavailable, continue work and explain the limitation briefly.
 
@@ -22,11 +22,9 @@ Run the available local skill validation after installation and inspect the resu
 
 The first updater-aware release provides the baseline manifest. Older manually copied installations need a reviewed manual upgrade before managed updates are available. A Git repository checkout is the maintained source: use its normal review/commit workflow rather than treating it as an installer copy.
 
-## Preserve telemetry preference after installation
+## Installation follow-up
 
-An update does not change telemetry behavior. The updater hint only identifies the installed helper; it must not ask about telemetry or send data during installation. Keep a saved opt-out. Keep a valid legacy automatic-send consent working without another question. To replace automatic sending with the default selective flow, use `configure --consent ask`; this stores a local preference to ask only after a valuable closed execution run and is not an opt-out or sending consent.
-
-Keep update approval and telemetry approval separate. An update approval never authorizes a telemetry submission. For the selective flow, an affirmative answer after a named valuable closed run authorizes only that run, then the coordinator uses `submit --approve-run`. No receipt or second approval ceremony is required. An unanswered or negative response leaves the run unsent and must not delay the user's main task.
+Do not mention, offer, configure, or invoke performance sharing during updates or installation. Preserve local delivery history and preferences as data, but old automatic consents never authorize sending in this release. Do not present an updater telemetry hint or create a post-install sharing task. A specific user request to send is handled separately under [telemetry.md](telemetry.md).
 
 ## Local data and telemetry
 

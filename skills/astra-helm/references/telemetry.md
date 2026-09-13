@@ -1,37 +1,32 @@
-# Optional performance telemetry
+# Explicitly requested performance sharing
 
-Performance sharing is optional. The default is to ask selectively after a valuable closed execution run, not during skill load, installation, or an ordinary update. Telemetry never changes routing policy automatically.
+Read this reference only when the user specifically requests a submission or asks about the sharing mechanism. During ordinary skill use, do not mention telemetry, solicit sharing, run status or preview, submit, or retry. Skill load, finish, update checks, and installation never trigger sharing. Local journals remain available for execution evidence and analysis.
 
-## Disclosure and approval
+## Requested submission
 
-Before asking about a particular run, explain that the submission contains only: skill and policy version, coarse task and risk categories, worker model/effort choices, correction counts, final review outcomes, delivered-work acceptance, categorical blocker reasons, and available scoped token counts. It never contains prompts, code, diffs, project names, repository URLs, file paths, raw logs, free-text feedback, persistent installation IDs, or local run IDs.
+A specific user request to send a named closed execution run authorizes its submission. If the user says to send the current completed run, resolve it from the current journal; do not ask again when the scope is clear. A request to analyze the database, improve the skill, or install an update does not authorize sending. Clarify only an unresolved run identity or destination that actually prevents the requested action.
 
-The endpoint is the value in `telemetry-config.json`, currently `https://telemetry.theoriainteractive.com/astrahelm/v1/events`, operated by the maintainer of `theoria-interactive/astra-helm` on Cloudflare. Every delivery has a random event ID used for deduplication. The receiver stores the allowlisted summary and receipt time for 30 days, with daily cleanup that can take up to one more day; Cloudflare D1 recovery history can retain deleted records for up to a further 30 days depending on its plan. IP addresses are used transiently for rate limiting and the application does not store IP addresses or user-agent strings. Cloudflare still processes normal connection metadata. Do not promise anonymity.
+Use the installed helper and its existing delivery state. Include `--approve-run` only after that specific request. Each invocation requires current authorization: legacy automatic consent, a saved approval, or an unfinished retry never authorizes a new invocation by itself. An explicit request to retry authorizes that retry; do not schedule, poll, or retry automatically after failure. A current explicit request may authorize one run despite an older saved opt-out, without enabling future sharing.
 
-Ask only after a closed execution run that has potentially useful routing, correction, verification, or blocker evidence. A concise affirmative for the named run is enough. It authorizes one invocation of the helper for that run, including its bounded retries; it does not create an automatic opt-in or authorize historical backfill. A completed run may be approved after it finishes even if it began earlier. Do not require a consent transcript, receipt file, or a second approval after that affirmative.
+The submission goes to the endpoint in `telemetry-config.json`, currently `https://telemetry.theoriainteractive.com/astrahelm/v1/events`, operated by the maintainer of `theoria-interactive/astra-helm`. The payload contains only allowlisted policy version, coarse task/risk and explicitly recorded routing categories, requested and available observed worker settings, correction counts and distinct correction rounds, final review outcomes, delivered-work acceptance, blocker categories, and available scoped token counts. It never contains prompts, code, diffs, project names, repository URLs, file paths, raw logs, free-text feedback, persistent installation IDs, or local run IDs. Do not add another approval ceremony when the user has already requested this submission; briefly report its result.
 
-An unanswered or negative answer means no submission. Do not repeat the question in the same conversation. A saved opt-out prevents questions, submissions, and retries. Opting out stops future deliveries but does not remove an event already received. Endpoint, disclosure, or retention changes invalidate a one-run approval before any retry. The helper retains the original event ID and frozen payload when a user explicitly re-approves that same unsent run against a new disclosure binding.
-
-Existing valid automatic-send consent from an earlier release remains compatible: eligible runs started after that consent may send without another question. It is never created by the selective path. A user can switch it off without opting out by selecting `configure --consent ask`; that preserves the selective post-run behavior. `configure --consent off` records an opt-out.
+Every delivery has a random event ID for deduplication. The receiver stores the allowlisted summary and receipt time for 30 days, with daily cleanup that can take up to one more day; provider recovery history can retain deleted records for up to a further 30 days depending on the plan. The application does not store IP addresses or user-agent strings. IP addresses are used transiently for rate limiting, and Cloudflare processes connection metadata under its own policies. Do not promise anonymity.
 
 ## Commands
 
 ```text
-python3 <skill-dir>/scripts/telemetry.py status
-python3 <skill-dir>/scripts/telemetry.py configure --consent ask
-python3 <skill-dir>/scripts/telemetry.py configure --consent off
 python3 <skill-dir>/scripts/telemetry.py preview --log-root <run-root> --run-id <run-id>
 python3 <skill-dir>/scripts/telemetry.py submit --log-root <run-root> --run-id <run-id> --approve-run
 ```
 
-`status` and `preview` are local and do not send data. `preview` can inspect a closed eligible run before it has approval and does not record an approval. The coordinator must have received the user's affirmative before adding `--approve-run`; that flag is the single-step record of the scoped authorization. Retry the same run without the flag only when its saved one-run approval remains bound to the current endpoint, disclosure, and retention.
+`preview` is local and records no approval; use it only when relevant to a user-requested inspection or submission. Bare `submit` cannot send, even when old state contains automatic consent or approval. `configure --consent on` and `configure --consent ask` return an explicit-only error; `configure --consent off` can still record a decline when specifically requested. Global automatic or selective-question modes are no longer supported. Do not invoke configuration or status as a routine part of skill use.
 
-The legacy `configure --consent on --consent-evidence-file <local-receipt.json>` command remains only to preserve already valid automatic-consent installations. Do not use it to solicit new automatic sharing. It still validates its local receipt and endpoint binding.
-
-The helper excludes test, tuning, synthetic, incomplete, and corrupt runs. It validates the payload allowlist, makes at most one bounded request per invocation, persists the event ID, frozen payload, and attempt before network I/O, and limits delivery to three attempts with backoff. Do not manufacture a state file, another event ID, or a hand-posted payload. A helper failure, unavailable endpoint, or missing approval must never block the requested work.
+The helper excludes test, tuning, synthetic, incomplete, and corrupt runs. It validates the allowlist, makes at most one bounded request per invocation, saves the delivery ID, frozen payload, and attempt before network I/O, and limits delivery to three attempts with backoff. An explicitly requested retry keeps the same identity and exact payload; new fields are never backfilled into frozen deliveries. A new request binds authorization to the current endpoint, disclosure, and retention. Do not manufacture a state file, another event ID, or a hand-posted payload. A failed submission must not prevent completion of other requested work.
 
 ## Interpretation and provenance
 
-`outcome` is closure of the agreed parent scope. Optional `delivered_work_status` records integration review of delivered work, and `blocker_reasons` uses only the structured categories from the journal. Missing usage remains unknown. Contributions are self-reported and untrusted observations, not quality certification or evidence of causality.
+`outcome` describes closure of the agreed parent scope. Optional `delivered_work_status` records integration review; `blocker_reasons` uses explicit journal categories. A worker's `final_verdict` is its last recorded review, not inferred from parent acceptance. Local closure dispositions remain local and do not overwrite review evidence.
 
-Use the installed helper and delivery state when analyzing a submission. Keep the run ID and log root in local handoff notes. A missing local delivery record leaves provenance unresolved; identical categorical submissions with different random IDs are candidates for investigation, not proof of duplicate work.
+Optional `correction_rounds` counts each changes-requested review once. Functional and quality category counts overlap for `both` reviews; do not add categories to obtain a distinct-round total. Missing historical fields and unavailable usage remain unknown. Contributions are self-reported and selected for submission, not representative usage statistics, quality certification, or evidence of causality.
+
+Keep run IDs and log roots in local handoff notes. Missing local delivery records leave provenance unresolved; identical categorical submissions with different random IDs are candidates for investigation, not proof of duplicate work. Never upload journals or their free-text fields.

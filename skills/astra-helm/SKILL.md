@@ -11,11 +11,11 @@ Keep Astra responsible for routing, direction, evidence-based review, and comple
 
 On skill load, follow [references/updates.md](references/updates.md) for the local update preference. Update checks require one-time opt-in; installation requires approval of the specific reviewed update. Reuse prior decisions and continue the user's task while an optional update question is pending. Offline checks and update failures must not block ordinary work. Updating the installed release is separate from tuning routing policy or consenting to telemetry.
 
-## Optional performance sharing
+## Explicitly requested performance sharing
 
-Read [references/telemetry.md](references/telemetry.md) before offering or sending a completed run. Telemetry is off by default: do not ask at skill load, installation, or ordinary update completion. Check local `status` without network access. Honor `declined` without asking again; a valid legacy automatic consent remains valid and may submit eligible future runs without repeated questions.
+During ordinary skill use, do not mention telemetry, ask about sharing, check sharing status, preview a payload, submit, or retry a delivery. This includes skill load, execution, finish, update checks, and installation. Legacy automatic consent and saved per-run approvals do not authorize a new attempt.
 
-After `finish`, consider a concise telemetry question only for a selectively valuable closed execution run, such as one with meaningful routing, correction, verification, or blocker evidence. It is optional and must not delay completion. State the disclosed endpoint and that only the allowlisted summary is sent. A clear affirmative authorizes that named run only; reuse it immediately with `submit --approve-run` and do not require a transcript receipt, a second confirmation, or a global opt-in. An unanswered or negative answer authorizes no send and should not be repeatedly raised in the same conversation. Do not use `--approve-run` until that approval exists. A per-run approval may cover the run that just completed even when it started before the approval; it never authorizes historical backfill or another run. Retries reuse its saved authorization, delivery ID, and frozen payload. After a user selects `configure --consent ask`, keep using this selective flow. Installation approval and update consent are never telemetry authorization. Send only the helper's validated payload, never raw logs; failed or disabled telemetry must not block completion.
+Only when the user specifically asks to send telemetry, read [references/telemetry.md](references/telemetry.md) and submit the requested closed execution run with the helper. A request to analyze telemetry, improve the skill, or install an update is not a request to send. Keep local execution journals under the logging protocol; they do not initiate sharing.
 
 ## Route the request
 
@@ -58,7 +58,7 @@ Give each worker a fresh, self-contained brief containing:
 
 - desired behavior, acceptance criteria, owned files or modules, and all task-specific restrictions;
 - a proportionate quality contract: design constraints, error visibility, relevant complexity expectations, and critical regressions to protect; distinguish mandatory requirements from optional preferences;
-- relevant project instructions and proportionate checks, including runtime or visual evidence for interactive changes;
+- relevant project instructions and proportionate checks, including runtime or visual evidence for interactive changes; for changes spanning persistence, retries, or shared contracts, identify affected consumers and state invariants, and run one representative integration probe early;
 - decisions it may make and which scope changes must return to Astra;
 - a reminder that others share the workspace, edits must be preserved, and shared-file ownership must not overlap;
 - a concise report contract: changed paths and behavior, checks and evidence, unresolved risks, and decisions needed.
@@ -75,7 +75,7 @@ Additional independent review needs a concrete risk or evidence gap. After corre
 
 Send actionable functional or quality corrections to the same worker with the location, impact, expected result, and verification method. Record substantive correction requests as changes-requested reviews under the logging protocol, including when they arise during replanning or integration; do not count the same request twice. After two unsuccessful correction rounds on the same issue, diagnose whether the cause is the brief, context, verification, environment, package size, or model/effort. Then replan from evidence by revising criteria, splitting scope, or replacing the worker. Stop the old worker before overlapping replacement work. Do not assume every failure requires a stronger model or move substantive implementation silently back to Astra.
 
-Continue until the authorized scope and integration criteria are accepted or a genuine blocker is explained. At closure, judge the agreed run scope; unrelated future work does not prevent completion. Record delivered-work integration acceptance separately from the parent outcome and record explicit blocker categories under the logging protocol. Routine implementation choices do not require user confirmation. Ask only for an unresolved decision, permission, or external change that is actually necessary.
+Continue until the authorized scope and integration criteria are accepted or a genuine blocker is explained. Before closure, reconcile each assignment’s latest review with the actual integration evidence; explicitly record replacements or cancelled packages and retain unresolved gaps. Do not infer worker acceptance from a parent finish. Identify required environments and external decisions early so they do not first appear at closure. At closure, judge the agreed run scope; unrelated future work does not prevent completion. Record delivered-work integration acceptance separately from the parent outcome and record explicit blocker categories under the logging protocol. Routine implementation choices do not require user confirmation. Ask only for an unresolved decision, permission, or external change that is actually necessary.
 
 ## Keep a useful history
 

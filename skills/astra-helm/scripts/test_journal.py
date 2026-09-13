@@ -235,6 +235,57 @@ class JournalTests(unittest.TestCase):
         self.assertNotIn("blocker_reasons", row)
         self.assertNotIn("delivered_work_status", row)
 
+    def test_summary_audits_latest_review_at_accepted_closure(self):
+        record = self.start()
+        self.dispatch(record["run_id"])
+        journal.append_event(self.root, record["run_id"], "review", {
+            "assignment_id": "worker-1", "verdict": "accepted", "findings": [],
+        })
+        journal.append_event(self.root, record["run_id"], "review", {
+            "assignment_id": "worker-1", "verdict": "changes_requested", "findings": ["regression"],
+        })
+        journal.append_event(self.root, record["run_id"], "finish", {
+            "outcome": "completed", "delivered_work_status": "accepted",
+        })
+        report = journal.summary(self.root, None, 30)
+        route = report["runs"][0]["routes"][0]
+        self.assertEqual(route["latest_review"]["verdict"], "changes_requested")
+        self.assertIsNone(route["assignment_disposition"])
+        self.assertTrue(any("accepted closure has unresolved assignment worker-1" in warning
+                            for warning in report["warnings"]))
+
+    def test_explicit_assignment_disposition_resolves_closure_without_inventing_review(self):
+        record = self.start()
+        self.dispatch(record["run_id"])
+        journal.append_event(self.root, record["run_id"], "finish", {
+            "outcome": "completed", "delivered_work_status": "accepted",
+            "assignment_dispositions": {"worker-1": "superseded"},
+        })
+        report = journal.summary(self.root, None, 30)
+        route = report["runs"][0]["routes"][0]
+        self.assertIsNone(route["latest_review"])
+        self.assertEqual(route["assignment_disposition"], "superseded")
+        self.assertEqual(report["runs"][0]["assignment_dispositions"], {"worker-1": "superseded"})
+        self.assertFalse(any("unresolved assignment" in warning for warning in report["warnings"]))
+
+    def test_assignment_dispositions_are_validated_and_unknown_ids_are_warned(self):
+        for value in (
+            [], {"": "cancelled"}, {"worker-1": "accepted"},
+            {f"worker-{index}": "cancelled" for index in range(journal.MAX_ASSIGNMENT_DISPOSITIONS + 1)},
+        ):
+            with self.subTest(value=value), self.assertRaises(journal.JournalError):
+                journal.validate_event("finish", {
+                    "outcome": "cancelled", "assignment_dispositions": value,
+                })
+
+        record = self.start()
+        journal.append_event(self.root, record["run_id"], "finish", {
+            "outcome": "cancelled", "assignment_dispositions": {"unknown-worker": "cancelled"},
+        })
+        report = journal.summary(self.root, None, 30)
+        self.assertTrue(any("unknown assignment: unknown-worker" in warning
+                            for warning in report["warnings"]))
+
 
 if __name__ == "__main__":
     unittest.main()

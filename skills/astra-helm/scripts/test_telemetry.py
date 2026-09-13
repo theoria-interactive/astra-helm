@@ -110,9 +110,12 @@ class TelemetryTests(unittest.TestCase):
             code, result = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
         self.assertEqual(code, 0)
         self.assertFalse(result["ok"])
+        self.assertIn("--approve-run", result["reason"])
         send.assert_not_called()
         self.write_config(None)
-        code, result = self.invoke("configure", "--consent", "on")
+        code, result = self.invoke(
+            "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+        )
         self.assertEqual(code, 0)
         self.assertIn("endpoint", result["reason"])
 
@@ -130,7 +133,7 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(result["status"], "sent")
         self.assertEqual(code_later, 0)
         self.assertFalse(later_result["ok"])
-        self.assertIn("has not been approved", later_result["reason"])
+        self.assertIn("--approve-run", later_result["reason"])
         self.assertEqual(send.call_count, 1)
         state = telemetry.load_state(self.state_path)
         self.assertEqual(state["runs"][earlier]["approval"]["scope"], "one_run")
@@ -145,8 +148,12 @@ class TelemetryTests(unittest.TestCase):
                 "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
             )
             current[0] += dt.timedelta(minutes=2)
-            retry = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            bare_retry = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            retry = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+            )
         self.assertEqual(first[1]["status"], "delivery_failed")
+        self.assertIn("--approve-run", bare_retry[1]["reason"])
         self.assertEqual(retry[1]["status"], "sent")
         self.assertEqual(send.call_count, 2)
         state = telemetry.load_state(self.state_path)
@@ -170,14 +177,18 @@ class TelemetryTests(unittest.TestCase):
                 "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
             )
             self.write_config(self.endpoint, disclosure="3")
-            _code, duplicate = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            _code, bare_duplicate = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            _code, duplicate = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+            )
         self.assertEqual(failed["status"], "delivery_failed")
-        self.assertIn("has not been approved", blocked["reason"])
+        self.assertIn("--approve-run", blocked["reason"])
         self.assertEqual(renewed["status"], "sent")
         self.assertEqual(renewed["event_id"], event_id)
         after = telemetry.load_state(self.state_path)["runs"][run_id]
         self.assertEqual(after["attempts"], 2)
         self.assertEqual(after["payload"], frozen_payload)
+        self.assertIn("--approve-run", bare_duplicate["reason"])
         self.assertEqual(duplicate["status"], "already_sent")
         send.assert_called_once()
 
@@ -203,13 +214,13 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertEqual(preview["payload"]["task_type"], "feature")
 
-    def test_one_run_approval_rejects_open_or_nonexecution_runs_and_saved_optout(self):
+    def test_one_run_approval_rejects_open_or_nonexecution_runs_and_overrides_saved_optout(self):
         open_run = self.journal()
         open_path = self.logs / f"{open_run}.jsonl"
         lines = open_path.read_text(encoding="utf-8").splitlines()
         open_path.write_text("\n".join(lines[:-1]) + "\n", encoding="utf-8")
         nonexecution = self.journal(kind="test")
-        with mock.patch.object(telemetry, "submit_once") as send:
+        with mock.patch.object(telemetry, "submit_once", return_value=202) as send:
             _code, open_result = self.invoke(
                 "submit", "--log-root", str(self.logs), "--run-id", open_run, "--approve-run",
             )
@@ -223,64 +234,22 @@ class TelemetryTests(unittest.TestCase):
             )
         self.assertIn("incomplete", open_result["reason"])
         self.assertIn("not eligible", test_result["reason"])
-        self.assertIn("declined", declined_result["reason"])
-        send.assert_not_called()
+        self.assertEqual(declined_result["status"], "sent")
+        send.assert_called_once()
 
-    def test_configure_on_requires_bounded_explicit_evidence(self):
-        code, result = self.invoke("configure", "--consent", "on")
-        self.assertEqual(code, 0)
-        self.assertIn("consent-evidence-file", result["reason"])
-
-        for evidence in (
-            {"prompt": "question", "response": "yes"},
-            {"prompt": " ", "response": "yes", "source": "task"},
-            {"prompt": "question", "response": "yes", "source": "task", "extra": "private"},
-            {"prompt": "question", "response": "x" * (telemetry.MAX_CONSENT_RESPONSE_LENGTH + 1),
-             "source": "task"},
-        ):
-            self.evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
-            with self.subTest(evidence=evidence):
-                code, result = self.invoke(
-                    "configure", "--consent", "on",
-                    "--consent-evidence-file", str(self.evidence_path),
-                )
+    def test_configure_on_and_ask_are_disabled_without_reading_evidence(self):
+        for choice in ("on", "ask"):
+            with self.subTest(choice=choice):
+                code, result = self.invoke("configure", "--consent", choice)
                 self.assertEqual(code, 0)
                 self.assertFalse(result["ok"])
-
-        self.evidence_path.write_bytes(b"{" + b"x" * telemetry.MAX_CONSENT_EVIDENCE_BYTES + b"}")
+                self.assertIn("submit --approve-run", result["reason"])
         code, result = self.invoke(
             "configure", "--consent", "on", "--consent-evidence-file", str(self.evidence_path),
         )
         self.assertEqual(code, 0)
-        self.assertIn("processing limit", result["reason"])
-
-    def test_authorized_status_has_scoped_receipt_and_reconfigure_is_idempotent(self):
-        first_time = dt.datetime(2026, 1, 2, tzinfo=dt.timezone.utc)
-        later = first_time + dt.timedelta(days=20)
-        with mock.patch.object(telemetry, "utc_now", return_value=first_time):
-            code, first = self.invoke(
-                "configure", "--consent", "on",
-                "--consent-evidence-file", str(self.evidence_path),
-            )
-        self.assertEqual(code, 0)
-        self.assertEqual(first["decision"], "authorized")
-        self.assertTrue(first["automatic_sending"])
-        receipt = first["authorization_receipt"]
-        self.assertEqual(receipt["prompt"], self.evidence["prompt"])
-        self.assertEqual(receipt["endpoint"], self.endpoint)
-
-        replacement = {"prompt": "different", "response": "yes", "source": "later task"}
-        self.evidence_path.write_text(json.dumps(replacement), encoding="utf-8")
-        with mock.patch.object(telemetry, "utc_now", return_value=later):
-            code, repeated = self.invoke(
-                "configure", "--consent", "on",
-                "--consent-evidence-file", str(self.evidence_path),
-            )
-        self.assertEqual(code, 0)
-        self.assertEqual(repeated["authorization_receipt"], receipt)
-        state = telemetry.load_state(self.state_path)
-        self.assertEqual(state["consent"]["consented_at"], receipt["consented_at"])
-        self.assertEqual(state["consent"]["evidence"], self.evidence)
+        self.assertIn("no longer accepted", result["reason"])
+        self.assertFalse(self.state_path.exists())
 
     def test_legacy_enabled_state_requires_confirmation_and_never_sends(self):
         state = telemetry.empty_state()
@@ -291,13 +260,14 @@ class TelemetryTests(unittest.TestCase):
         telemetry.save_state(self.state_path, state)
         code, status = self.invoke("status")
         self.assertEqual(code, 0)
-        self.assertEqual(status["decision"], "renewal_required")
-        self.assertEqual(status["reason"], "legacy_consent_requires_confirmation")
+        self.assertEqual(status["decision"], "explicit_only")
+        self.assertEqual(status["reason"], "explicit_run_approval_required")
         run_id = self.journal()
         with mock.patch.object(telemetry, "submit_once") as send:
             code, result = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
         self.assertEqual(code, 0)
         self.assertFalse(result["ok"])
+        self.assertIn("--approve-run", result["reason"])
         send.assert_not_called()
 
     def test_explicit_off_is_declined_and_needs_no_evidence(self):
@@ -311,22 +281,13 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertFalse(error["ok"])
 
-    def test_ask_mode_replaces_automatic_consent_without_recording_an_optout(self):
+    def test_ask_mode_cannot_replace_legacy_state(self):
         self.consent()
+        before = self.state_path.read_bytes()
         code, result = self.invoke("configure", "--consent", "ask")
         self.assertEqual(code, 0)
-        self.assertEqual(result["decision"], "ask")
-        self.assertEqual(result["reason"], "selective_run_approval")
-        self.assertFalse(result["automatic_sending"])
-        run_id = self.journal()
-        with mock.patch.object(telemetry, "submit_once", return_value=202) as send:
-            _code, missing = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
-            _code, approved = self.invoke(
-                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
-            )
-        self.assertIn("has not been approved", missing["reason"])
-        self.assertEqual(approved["status"], "sent")
-        send.assert_called_once()
+        self.assertFalse(result["ok"])
+        self.assertEqual(self.state_path.read_bytes(), before)
 
     def test_preview_has_strict_allowlist_and_no_sentinel_leakage(self):
         self.consent()
@@ -358,7 +319,9 @@ class TelemetryTests(unittest.TestCase):
             return 202
 
         with mock.patch.object(telemetry, "submit_once", side_effect=capture):
-            code, result = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            code, result = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+            )
         self.assertEqual(code, 0)
         self.assertEqual(result["status"], "sent")
         encoded = bodies[0]
@@ -367,29 +330,31 @@ class TelemetryTests(unittest.TestCase):
         self.assertNotIn("authorization_receipt", encoded)
         self.assertNotIn("automatic_sending", encoded)
 
-    def test_consent_is_invalidated_by_endpoint_disclosure_or_retention_change(self):
+    def test_legacy_consent_state_is_readable_and_not_rewritten_by_status(self):
         self.consent()
+        original = self.state_path.read_bytes()
         for endpoint, disclosure, retention in (("https://other.test/v1/events", "1", 30),
                                                 (self.endpoint, "2", 30), (self.endpoint, "1", 31)):
             self.write_config(endpoint, disclosure, retention)
             code, result = self.invoke("status")
             self.assertEqual(code, 0)
-            self.assertEqual(result["reason"], "consent_invalidated")
-        self.write_config(self.endpoint, "1", 30)
-        code, result = self.invoke("status")
-        self.assertEqual(code, 0)
-        self.assertEqual(result["reason"], "consent_invalidated")
+            self.assertEqual(result["decision"], "explicit_only")
+            self.assertFalse(result["automatic_sending"])
+            self.assertEqual(self.state_path.read_bytes(), original)
 
-    def test_preconsent_run_and_nonexecution_runs_are_rejected(self):
+    def test_legacy_automatic_consent_does_not_authorize_bare_submit(self):
         self.consent()
         before = self.journal(started="2026-01-01T00:00:00Z")
         code, result = self.invoke("submit", "--log-root", str(self.logs), "--run-id", before)
         self.assertEqual(code, 0)
-        self.assertIn("before", result["reason"])
+        self.assertIn("--approve-run", result["reason"])
         for kind in ("test", "tuning", "synthetic"):
             run_id = self.journal(kind=kind)
-            code, _result = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            code, rejected = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+            )
             self.assertEqual(code, 0)
+            self.assertIn("not eligible", rejected["reason"])
 
     def test_one_run_approval_can_cover_a_preautomatic_consent_run(self):
         self.consent()
@@ -401,31 +366,38 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(result["status"], "sent")
         send.assert_called_once()
 
-    def test_optout_stops_retry_without_network(self):
-        self.consent()
+    def test_saved_approval_and_optout_do_not_authorize_bare_retry(self):
         run_id = self.journal()
         with mock.patch.object(telemetry, "submit_once", side_effect=telemetry.TelemetryError("delivery failed")) as send:
-            code, result = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            code, result = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+            )
         self.assertEqual(code, 0)
         self.assertEqual(result["attempts"], 1)
         self.invoke("configure", "--consent", "off")
         with mock.patch.object(telemetry, "submit_once") as send_after:
-            code, _result = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            code, bare = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
         self.assertEqual(code, 0)
+        self.assertIn("--approve-run", bare["reason"])
         send_after.assert_not_called()
+        self.assertEqual(send.call_count, 1)
 
     def test_duplicate_submit_is_idempotent(self):
         self.consent()
         run_id = self.journal()
         with mock.patch.object(telemetry, "submit_once", return_value=202) as send:
-            first = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
-            second = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            first = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+            )
+            second = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+            )
         self.assertEqual(first[1]["status"], "sent")
         self.assertEqual(second[1]["status"], "already_sent")
         self.assertEqual(send.call_count, 1)
         self.assertEqual(first[1]["event_id"], second[1]["event_id"])
 
-    def test_one_valid_receipt_authorizes_multiple_later_runs_without_reconfigure(self):
+    def test_one_valid_legacy_receipt_authorizes_no_bare_runs(self):
         self.consent()
         run_ids = [self.journal(), self.journal(task_type="bugfix")]
         with mock.patch.object(telemetry, "submit_once", return_value=202) as send:
@@ -433,11 +405,11 @@ class TelemetryTests(unittest.TestCase):
                 self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)[1]
                 for run_id in run_ids
             ]
-        self.assertEqual([result["status"] for result in results], ["sent", "sent"])
-        self.assertEqual(send.call_count, 2)
+        self.assertTrue(all("--approve-run" in result["reason"] for result in results))
+        self.assertEqual(send.call_count, 0)
         status = self.invoke("status")[1]
-        self.assertEqual(status["decision"], "authorized")
-        self.assertTrue(status["automatic_sending"])
+        self.assertEqual(status["decision"], "explicit_only")
+        self.assertFalse(status["automatic_sending"])
 
     def test_decline_persists_when_endpoint_is_removed(self):
         self.invoke("configure", "--consent", "off")
@@ -454,13 +426,13 @@ class TelemetryTests(unittest.TestCase):
         current = [dt.datetime(2026, 1, 4, tzinfo=dt.timezone.utc)]
         with mock.patch.object(telemetry, "utc_now", side_effect=lambda: current[0]), \
              mock.patch.object(telemetry, "submit_once", side_effect=telemetry.TelemetryError("secret body")) as send:
-            first = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
-            blocked = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            first = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run")
+            blocked = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run")
             current[0] += dt.timedelta(minutes=2)
-            second = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            second = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run")
             current[0] += dt.timedelta(minutes=10)
-            third = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
-            fourth = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            third = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run")
+            fourth = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run")
         self.assertEqual(blocked[1]["status"], "backoff")
         self.assertEqual(third[1]["status"], "retry_limit_reached")
         self.assertEqual(fourth[1]["status"], "retry_limit_reached")
@@ -521,7 +493,9 @@ class TelemetryTests(unittest.TestCase):
         run_id = self.journal(task_type="feature")
         with mock.patch.object(telemetry, "submit_once", side_effect=RuntimeError("simulated crash")):
             with self.assertRaises(RuntimeError):
-                self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+                self.invoke(
+                    "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+                )
         state = telemetry.load_state(self.state_path)
         frozen = state["runs"][run_id]
         self.assertEqual(frozen["attempts"], 1)
@@ -538,7 +512,9 @@ class TelemetryTests(unittest.TestCase):
             return 202
 
         with mock.patch.object(telemetry, "submit_once", side_effect=capture):
-            code, result = self.invoke("submit", "--log-root", str(self.logs), "--run-id", run_id)
+            code, result = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+            )
         self.assertEqual(code, 0)
         self.assertEqual(result["status"], "sent")
         self.assertEqual(sent_bodies[0]["task_type"], "feature")
@@ -557,6 +533,76 @@ class TelemetryTests(unittest.TestCase):
         self.assertEqual(payload["routes"][0]["effort"], "unknown")
         self.assertIsNone(payload["routes"][0]["usage"])
         self.assertNotEqual(payload["routes"][0]["usage"], {key: 0 for key in telemetry.USAGE_KEYS})
+
+    def test_correction_rounds_count_each_changes_requested_review_once(self):
+        run_id = self.journal()
+        path = self.logs / f"{run_id}.jsonl"
+        records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        accepted = next(record for record in records if record["event"] == "review")
+        corrections = []
+        for offset, kind in enumerate(("functional", "both", None), 1):
+            review = json.loads(json.dumps(accepted))
+            review["timestamp"] = f"2026-01-03T00:00:0{offset}Z"
+            review["data"]["verdict"] = "changes_requested"
+            if kind is not None:
+                review["data"]["correction_kind"] = kind
+            corrections.append(review)
+        accepted["timestamp"] = "2026-01-03T00:00:04Z"
+        records[2:-1] = corrections + [accepted]
+        payload = telemetry.build_payload(records, str(uuid.uuid4()))
+        route = payload["routes"][0]
+        self.assertEqual(route["functional_corrections"], 2)
+        self.assertEqual(route["quality_corrections"], 1)
+        self.assertEqual(route["unclassified_corrections"], 1)
+        self.assertEqual(route["correction_rounds"], 3)
+        self.assertEqual(route["final_verdict"], "accepted")
+
+    def test_correction_rounds_are_optional_and_internally_bounded(self):
+        run_id = self.journal()
+        payload = telemetry.build_payload(telemetry.load_run(self.logs, run_id), str(uuid.uuid4()))
+        legacy = json.loads(json.dumps(payload))
+        del legacy["routes"][0]["correction_rounds"]
+        telemetry.validate_wire_payload(legacy)
+
+        route = payload["routes"][0]
+        route.update({
+            "functional_corrections": 1,
+            "quality_corrections": 1,
+            "unclassified_corrections": 1,
+        })
+        for rounds in (-1, 1, 4, telemetry.MAX_CORRECTION_COUNT + 1):
+            malformed = json.loads(json.dumps(payload))
+            malformed["routes"][0]["correction_rounds"] = rounds
+            with self.subTest(rounds=rounds), self.assertRaises(telemetry.TelemetryError):
+                telemetry.validate_wire_payload(malformed)
+        payload["routes"][0]["correction_rounds"] = 2
+        telemetry.validate_wire_payload(payload)
+
+    def test_legacy_frozen_payload_without_correction_rounds_is_retried_unchanged(self):
+        run_id = self.journal(task_type="feature")
+        current = [dt.datetime(2026, 1, 4, tzinfo=dt.timezone.utc)]
+        with mock.patch.object(telemetry, "utc_now", side_effect=lambda: current[0]), \
+             mock.patch.object(telemetry, "submit_once", side_effect=telemetry.TelemetryError("failed")):
+            self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+            )
+        state = telemetry.load_state(self.state_path)
+        del state["runs"][run_id]["payload"]["routes"][0]["correction_rounds"]
+        telemetry.save_state(self.state_path, state)
+        current[0] += dt.timedelta(minutes=2)
+        bodies = []
+
+        def capture(_endpoint, body):
+            bodies.append(json.loads(body))
+            return 202
+
+        with mock.patch.object(telemetry, "utc_now", side_effect=lambda: current[0]), \
+             mock.patch.object(telemetry, "submit_once", side_effect=capture):
+            _code, result = self.invoke(
+                "submit", "--log-root", str(self.logs), "--run-id", run_id, "--approve-run",
+            )
+        self.assertEqual(result["status"], "sent")
+        self.assertNotIn("correction_rounds", bodies[0]["routes"][0])
 
     def test_wire_numeric_and_semver_bounds(self):
         self.consent()

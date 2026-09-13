@@ -58,3 +58,11 @@ The proxied DNS record for `telemetry.theoriainteractive.com` is an originless A
 Version 1.7.0 adds optional `delivered_work_status` and `blocker_reasons` fields to schema version 1. The receiver accepts older payloads with these fields absent; no D1 migration or historical backfill is needed. Missing fields mean unknown. Blocker categories describe why the parent scope stopped, while delivered-work status records integration acceptance separately.
 
 Deploy the updated receiver before installing or distributing clients that emit these fields: the previous receiver's strict allowlist rejects them. Then clients must renew consent to disclosure version 3 before sending expanded summaries. A source push alone does not deploy the receiver or update installed skills. Preserve frozen retry payloads and historical rows.
+
+## Version 1.9.0 measurement rollout
+
+The client sends only on a specific user request. Legacy automatic consent and stored approval never authorize another invocation, and the updater has no sharing follow-up.
+
+Schema version 1 now accepts optional `correction_rounds` on each route. It counts distinct changes-requested review events, including a `both` review once. Functional and quality counters still overlap. Old payloads without this field remain valid and mean unknown distinct rounds; do not rewrite historical rows or frozen retries. Disclosure version 4 describes the new field.
+
+Deploy the compatible receiver before distributing the new client. No D1 migration or historical backfill is needed. Validate new and legacy payloads with the receiver tests; do not send a real telemetry event as a deployment probe.

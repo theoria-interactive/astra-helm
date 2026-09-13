@@ -229,16 +229,8 @@ class UpdaterTests(unittest.TestCase):
         self.assertEqual((backup / "policy.json").read_bytes(), self.old_files["policy.json"])
         self.assertEqual(updater.read_local_manifest(self.root)["version"], "1.5.0")
         self.assertIsNone(updater.load_state(self.root)["candidate"])
-        follow_up = result["follow_up"]
-        self.assertEqual(follow_up["action"], "preserve_telemetry_preference")
-        self.assertFalse(follow_up["execute"])
-        self.assertFalse(follow_up["ask_during_install"])
-        self.assertEqual(follow_up["selective_mode_command"], ["configure", "--consent", "ask"])
-        self.assertEqual(follow_up["one_run_submission"], ["submit", "--approve-run"])
-        self.assertFalse(follow_up["installation_approval_is_telemetry_consent"])
-        self.assertEqual(follow_up["helper"], "scripts/telemetry.py")
-        self.assertEqual(follow_up["arguments"], ["status"])
-        self.assertNotIn(str(self.root), json.dumps(follow_up))
+        self.assertNotIn("follow_up", result)
+        self.assertNotIn("telemetry", json.dumps(result).lower())
 
     def test_failed_mutation_rolls_back_replaced_and_removed_files(self):
         old = self.release_files("1.4.1", "old", {"obsolete.txt": b"old managed\n"})
