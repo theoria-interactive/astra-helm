@@ -182,6 +182,23 @@ test("accepts legacy routes without correction_rounds and bounds consistent tota
   assert.equal(validateTelemetryEvent(unclassifiedCannotOverlap), false);
 });
 
+test("accepts optional assignment dispositions and rejects other route values", () => {
+  const legacy = event();
+  assert.equal(validateTelemetryEvent(legacy), true);
+
+  for (const assignment_disposition of ["superseded", "cancelled"]) {
+    assert.equal(validateTelemetryEvent(event({
+      routes: [{ ...event().routes[0], assignment_disposition }],
+    })), true);
+  }
+
+  for (const assignment_disposition of ["private free text", "accepted", null, {}]) {
+    assert.equal(validateTelemetryEvent(event({
+      routes: [{ ...event().routes[0], assignment_disposition }],
+    })), false);
+  }
+});
+
 test("requires one route record for each reported worker", () => {
   assert.equal(validateTelemetryEvent(event({ worker_count: 1 })), true);
   assert.equal(validateTelemetryEvent(event({ worker_count: 0, routes: [] })), true);
@@ -335,9 +352,14 @@ test("health and privacy expose no database rows", async () => {
   const disclosure = await (await worker.fetch(
     new Request("https://telemetry.example/privacy"), env,
   )).json();
-  assert.equal(disclosure.disclosure_version, "4");
+  assert.equal(disclosure.disclosure_version, "5");
   assert.ok(disclosure.accepted_fields.route.includes("correction_rounds"));
-  assert.deepEqual(disclosure.accepted_fields.route_optional, ["correction_rounds"]);
+  assert.ok(disclosure.accepted_fields.route.includes("assignment_disposition"));
+  assert.deepEqual(disclosure.accepted_fields.route_optional, ["correction_rounds", "assignment_disposition"]);
+  assert.deepEqual(
+    new Set(disclosure.accepted_fields.assignment_disposition),
+    new Set(["superseded", "cancelled"]),
+  );
   assert.deepEqual(
     new Set(disclosure.accepted_fields.blocker_reasons),
     new Set(["pending_decision", "external_approval", "environment_limitation", "unresolved_defect", "verification_gap"]),

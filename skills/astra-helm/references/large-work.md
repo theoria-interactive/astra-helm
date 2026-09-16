@@ -10,6 +10,8 @@ Dispatch ready independent substantive packages up to available host capacity an
 
 Each package gets a fresh self-contained brief and nonoverlapping ownership. Link the assignment to its item, parent, prerequisites, owned paths, and plan reference. Record why packages run in parallel or remain sequenced. A reused worker taking a different package receives a new assignment ID and fresh brief.
 
+For long-running verification, the coordinator owns the suite process/session, its eventual exit result and the remaining failure inventory. Give repair workers a bounded group of failures, explicit file ownership, focused checks and a completion condition. Do not combine indefinite suite monitoring with an open-ended repair package. A running command or a promise to validate later is a progress report, not acceptance. If follow-through repeatedly fails, narrow the package and stop the old worker before assigning a replacement; do not infer that every such failure requires higher model effort.
+
 As workers return, inspect actual changes and evidence, update item state, and correct that worker while unrelated packages continue. Release dependents only after prerequisites are reviewed, accepted, and available in the working state. Dispatch newly ready packages when capacity becomes available. Use bounded native waits only when no useful coordination work remains.
 
 After item acceptance, verify combined behavior against the parent criteria. Assign integration fixes with explicit ownership. One successful child report does not complete the parent scope. Continue through all authorized items and integration review; if some are blocked, continue independent work and report the precise blocker and affected dependents.

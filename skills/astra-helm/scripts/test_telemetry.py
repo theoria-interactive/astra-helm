@@ -578,6 +578,49 @@ class TelemetryTests(unittest.TestCase):
         payload["routes"][0]["correction_rounds"] = 2
         telemetry.validate_wire_payload(payload)
 
+    def test_assignment_dispositions_map_only_from_matching_finish_assignments(self):
+        run_id = self.journal()
+        records = telemetry.load_run(self.logs, run_id)
+        first_assignment = records[1]["data"]["assignment_id"]
+        second_assignment = "SECOND-SENTINEL-assignment-id"
+        second_dispatch = json.loads(json.dumps(records[1]))
+        second_dispatch["data"]["assignment_id"] = second_assignment
+        second_review = json.loads(json.dumps(records[2]))
+        second_review["data"].update({"assignment_id": second_assignment, "verdict": "blocked"})
+        records[1:3] = [records[1], second_dispatch, records[2], second_review]
+        finish = records[-1]["data"]
+        finish["assignment_dispositions"] = {
+            first_assignment: "superseded",
+            second_assignment: "cancelled",
+            "UNMATCHED-SENTINEL-assignment-id": "private free text",
+        }
+
+        payload = telemetry.build_payload(records, str(uuid.uuid4()))
+        self.assertEqual(
+            [route["assignment_disposition"] for route in payload["routes"]],
+            ["superseded", "cancelled"],
+        )
+        self.assertEqual([route["final_verdict"] for route in payload["routes"]], ["accepted", "blocked"])
+        encoded = json.dumps(payload)
+        self.assertNotIn("SENTINEL", encoded)
+        self.assertNotIn("assignment_id", encoded)
+        self.assertNotIn("private free text", encoded)
+
+    def test_invalid_or_missing_assignment_dispositions_are_omitted_and_frozen_legacy_payloads_validate(self):
+        run_id = self.journal()
+        records = telemetry.load_run(self.logs, run_id)
+        assignment_id = records[1]["data"]["assignment_id"]
+        finish = records[-1]["data"]
+        for dispositions in (None, {assignment_id: "private free text"}, {assignment_id: {}}, []):
+            with self.subTest(dispositions=dispositions):
+                finish["assignment_dispositions"] = dispositions
+                payload = telemetry.build_payload(records, str(uuid.uuid4()))
+                self.assertNotIn("assignment_disposition", payload["routes"][0])
+
+        legacy = telemetry.build_payload(records, str(uuid.uuid4()))
+        legacy["routes"][0].pop("assignment_disposition", None)
+        telemetry.validate_wire_payload(legacy)
+
     def test_legacy_frozen_payload_without_correction_rounds_is_retried_unchanged(self):
         run_id = self.journal(task_type="feature")
         current = [dt.datetime(2026, 1, 4, tzinfo=dt.timezone.utc)]
@@ -588,7 +631,16 @@ class TelemetryTests(unittest.TestCase):
             )
         state = telemetry.load_state(self.state_path)
         del state["runs"][run_id]["payload"]["routes"][0]["correction_rounds"]
+        state["runs"][run_id]["payload"]["routes"][0].pop("assignment_disposition", None)
+        frozen_payload = json.loads(json.dumps(state["runs"][run_id]["payload"]))
         telemetry.save_state(self.state_path, state)
+        path = self.logs / f"{run_id}.jsonl"
+        records = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        assignment_id = next(record for record in records if record["event"] == "dispatch")["data"]["assignment_id"]
+        next(record for record in records if record["event"] == "finish")["data"]["assignment_dispositions"] = {
+            assignment_id: "cancelled",
+        }
+        path.write_text("".join(json.dumps(record) + "\n" for record in records), encoding="utf-8")
         current[0] += dt.timedelta(minutes=2)
         bodies = []
 
@@ -603,6 +655,9 @@ class TelemetryTests(unittest.TestCase):
             )
         self.assertEqual(result["status"], "sent")
         self.assertNotIn("correction_rounds", bodies[0]["routes"][0])
+        self.assertNotIn("assignment_disposition", bodies[0]["routes"][0])
+        self.assertEqual(bodies[0], frozen_payload)
+        self.assertEqual(result["event_id"], frozen_payload["event_id"])
 
     def test_wire_numeric_and_semver_bounds(self):
         self.consent()
@@ -678,6 +733,15 @@ class TelemetryTests(unittest.TestCase):
         invalid_outcome = {**payload, "outcome": "completed"}
         with self.assertRaises(telemetry.TelemetryError):
             telemetry.validate_wire_payload(invalid_outcome)
+
+    def test_frozen_payload_rejects_invalid_assignment_disposition(self):
+        run_id = self.journal()
+        payload = telemetry.build_payload(telemetry.load_run(self.logs, run_id), str(uuid.uuid4()))
+        for disposition in ("private free text", "accepted", None, {}):
+            malformed = json.loads(json.dumps(payload))
+            malformed["routes"][0]["assignment_disposition"] = disposition
+            with self.subTest(disposition=disposition), self.assertRaises(telemetry.TelemetryError):
+                telemetry.validate_wire_payload(malformed)
 
 
 if __name__ == "__main__":

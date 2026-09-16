@@ -10,9 +10,21 @@ If instructions diverge, reconcile current guidance with branch-specific contrac
 
 ## Persistent test isolation
 
-Before the first test that may write saves, databases, or other durable data, verify the actual resolved destination and environment. An intended command-line option or a successful process exit is not evidence of isolation. Prefer an existing project probe or fixture that reports the effective destination. Do not inspect or mutate ordinary user data to establish isolation, and do not repurpose HOME or other system variables.
+Before tests that may write saves, databases, or other durable application data, require a fail-closed gate in the actual test launcher or application startup, before any persistent write. The gate must obtain every effective local data destination from the application's runtime configuration, resolve symlinks, and confirm that each is within an explicitly designated isolated test root. For remote persistence, verify the actual endpoint/database is an explicitly authorized isolated test resource; a local-path check cannot establish that boundary. Missing, unreadable, or mismatched destinations stop the affected test with a nonzero result. A path supplied only as a command-line argument, a copied configuration, or a successful process exit does not prove the application used it. Do not inspect or mutate ordinary user data to prove isolation, and do not repurpose HOME or other system variables.
 
-Record the verified environment, relevant configuration, and evidence path with the test result. Reuse that proof while its inputs remain unchanged; recheck after changing the test copy, destination, configuration, or invocation that controls it. A failed isolation check blocks the affected mutating test, not unrelated work. If prior runs used an unverified destination, qualify their evidence and assess the issue through non-sensitive metadata before rerunning only the affected checks safely.
+Prefer the project's existing gate. If absent, add a narrow pre-write check within the authorized test harness work; if that is not in scope or cannot run before startup writes, leave the mutating test unrun and explain the gap. Continue static checks and other isolated work. Do not substitute a generic external wrapper that only validates the requested path. Existing temporary-directory unit fixtures and in-memory mocks are sufficient when their actual destinations are explicit and cannot fall back to a user profile.
+
+Record the checked executable/test copy, runtime-resolved destinations, relevant configuration and evidence with the test result. The gate runs on every launch that can write persistent application data; reuse the coordinator's inspection of its unchanged implementation instead of asking again. Revalidate after changing the checkout, executable, configuration, environment or invocation. Include a negative probe proving that an unexpected destination prevents test execution without touching the real user profile.
+
+If a previous launch used an unverified destination, stop further mutating launches, qualify its evidence, and preserve the current state. Assess impact through non-sensitive metadata. Do not claim restoration or repair user data without a verified recovery source and appropriate authorization.
+
+## Regression evidence
+
+For a bugfix, establish that the focused regression check detects the pre-fix behavior before accepting it. Prefer running the same check against an isolated pre-fix copy; a narrow reversible fault injection can establish sensitivity when that is more practical. If neither is feasible, record the evidence gap rather than claiming a demonstrated regression. Do not force full-suite replay or mutation testing on unrelated changes.
+
+Exercise the boundary claimed by the test: persisted reload for restore defects, production input dispatch for interaction defects, and exact edge values for numeric or timing defects. A failed UI action must fail its interaction check; a direct owner call may be a separate component check, never a fallback that turns the failed interaction green. Preserve meaningful assertions and existing boundary coverage when updating fixtures. Self-readback, nonnegative-only checks and conditional skips do not establish the original behavioral claim.
+
+Visual evidence must show the relevant state in its real screen context at the required viewport. An isolated widget, clipped capture or empty background does not establish integrated screen behavior. Keep what a fixture proves separate from physical-device or real-world acceptance.
 
 ## Review scope and reuse
 

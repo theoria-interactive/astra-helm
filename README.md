@@ -36,7 +36,7 @@ The Theoria Interactive-operated endpoint is `https://telemetry.theoriainteracti
 
 Active rows are retained for 30 days with up to one day of cleanup lag. Provider recovery history is separate. See [the full disclosure and commands](skills/astra-helm/references/telemetry.md). The [receiver](receiver/README.md) has no public data-read API.
 
-Version 1.9.0 adds a distinct `correction_rounds` count alongside overlapping functional/quality categories and local assignment-closure diagnostics. Parent completion, delivered-work acceptance, and individual worker reviews remain separate evidence. Older payloads remain valid; missing measurements are unknown, and frozen deliveries are preserved. Model routing defaults are unchanged because the selected observations do not establish comparable cost or quality rankings.
+Version 1.9.0 added a distinct `correction_rounds` count alongside overlapping functional/quality categories and local assignment-closure diagnostics. Parent completion, delivered-work acceptance, and individual worker reviews remain separate evidence. Older payloads remain valid; missing measurements are unknown, and frozen deliveries are preserved. Model routing defaults are unchanged because the selected observations do not establish comparable cost or quality rankings.
 
 ## Astra Helm benchmarks
 
@@ -91,6 +91,12 @@ The tables contain worker costs only. At the recorded cutoffs, the pilot used 5,
 There was one implementation per task/route, one coordinator, and no blind quality review or repeated trials. Cache and execution-order effects were not controlled. The harder tasks compared only Luna max, Terra high, and Sol high; they do not establish an ordering at other efforts. Raw local benchmark artifacts are not included in this repository, so this section reports observations rather than providing a reproducible benchmark suite.
 
 The resulting policy is to choose a worker for each package's requirements, review against a shared quality contract, and compare costs among solutions that meet it. Clear, independent work can justify Luna or Terra; coupled scheduling and concurrency work can justify Sol high. Mixed-model execution remains a routing option whose end-to-end savings were not measured here.
+
+## Version 1.10.0
+
+Persistent application tests require a runtime-resolved destination gate before writes; when no safe gate is available, the affected test remains unrun. Bugfix verification must demonstrate sensitivity to the pre-fix behavior at the claimed boundary or retain an explicit evidence gap. Long-running suite monitoring stays with the coordinator while workers own bounded repair packages.
+
+Explicitly requested summaries can include a per-route `assignment_disposition` category (`superseded` or `cancelled`) without transmitting assignment IDs or replacing historical review verdicts. Older payloads and frozen retries remain valid. Routing defaults and explicit-request-only sharing are unchanged.
 
 ## Development
 

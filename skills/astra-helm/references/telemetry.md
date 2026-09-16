@@ -25,7 +25,7 @@ The helper excludes test, tuning, synthetic, incomplete, and corrupt runs. It va
 
 ## Interpretation and provenance
 
-`outcome` describes closure of the agreed parent scope. Optional `delivered_work_status` records integration review; `blocker_reasons` uses explicit journal categories. A worker's `final_verdict` is its last recorded review, not inferred from parent acceptance. Local closure dispositions remain local and do not overwrite review evidence.
+`outcome` describes closure of the agreed parent scope. Optional `delivered_work_status` records integration review; `blocker_reasons` uses explicit journal categories. A worker's `final_verdict` is its last recorded review, not inferred from parent acceptance. Optional per-route `assignment_disposition` carries only an explicitly recorded `superseded` or `cancelled` category. It does not overwrite the last review or imply acceptance. Missing disposition is unknown; assignment IDs and replacement explanations remain local.
 
 Optional `correction_rounds` counts each changes-requested review once. Functional and quality category counts overlap for `both` reviews; do not add categories to obtain a distinct-round total. Missing historical fields and unavailable usage remain unknown. Contributions are self-reported and selected for submission, not representative usage statistics, quality certification, or evidence of causality.
 

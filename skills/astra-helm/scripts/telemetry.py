@@ -56,6 +56,7 @@ BLOCKER_REASONS = {
     "unresolved_defect", "verification_gap",
 }
 DELIVERED_WORK_STATUSES = {"accepted", "changes_requested", "not_reviewed"}
+ASSIGNMENT_DISPOSITIONS = {"superseded", "cancelled"}
 USAGE_KEYS = ("input_tokens", "cached_input_tokens", "output_tokens", "reasoning_output_tokens")
 USAGE_REASONS = {"no_measurements", "unsupported_scope", "incomplete_counters", "conflicting_measurements"}
 SEMVER = re.compile(r"^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$")
@@ -483,7 +484,7 @@ def validate_wire_payload(payload: object) -> bytes:
         raise TelemetryError("frozen telemetry payload is malformed")
     route_required = {"model", "effort", "actual_model", "actual_effort", "functional_corrections",
                       "quality_corrections", "unclassified_corrections", "final_verdict", "usage", "usage_reason"}
-    route_optional = {"correction_rounds"}
+    route_optional = {"correction_rounds", "assignment_disposition"}
     for route in routes:
         if (not isinstance(route, dict) or not route_required.issubset(route)
                 or not set(route).issubset(route_required | route_optional)):
@@ -495,6 +496,10 @@ def validate_wire_payload(payload: object) -> bytes:
         if route["actual_effort"] is not None and route["actual_effort"] not in EFFORTS | {"unknown"}:
             raise TelemetryError("frozen telemetry payload is malformed")
         if route["final_verdict"] not in VERDICTS | {"unknown"}:
+            raise TelemetryError("frozen telemetry payload is malformed")
+        if ("assignment_disposition" in route
+                and (not isinstance(route["assignment_disposition"], str)
+                     or route["assignment_disposition"] not in ASSIGNMENT_DISPOSITIONS)):
             raise TelemetryError("frozen telemetry payload is malformed")
         for key in ("functional_corrections", "quality_corrections", "unclassified_corrections"):
             if not bounded_integer(route[key], MAX_CORRECTION_COUNT):
@@ -561,6 +566,12 @@ def build_payload(records: list[dict], event_id: str) -> dict:
     reviews = [record for record in records if record.get("event") == "review"]
     runtimes = [record for record in records if record.get("event") == "runtime"]
     finish = next(record for record in records if record.get("event") == "finish")
+    finish_data = finish.get("data")
+    assignment_dispositions = (
+        finish_data.get("assignment_dispositions")
+        if isinstance(finish_data, dict) and isinstance(finish_data.get("assignment_dispositions"), dict)
+        else {}
+    )
 
     routes = []
     for dispatch in dispatches:
@@ -586,7 +597,7 @@ def build_payload(records: list[dict], event_id: str) -> dict:
                 counts[correction] += 1
             else:
                 counts["unclassified"] += 1
-        routes.append({
+        route = {
             "model": mapped(data.get("model"), MODELS),
             "effort": mapped(data.get("effort"), EFFORTS),
             "actual_model": mapped_nullable(actual_model, MODELS),
@@ -600,7 +611,11 @@ def build_payload(records: list[dict], event_id: str) -> dict:
             "final_verdict": mapped(relevant_reviews[-1].get("verdict") if relevant_reviews else None, VERDICTS),
             "usage": usage,
             "usage_reason": usage_reason,
-        })
+        }
+        disposition = assignment_dispositions.get(assignment_id)
+        if isinstance(disposition, str) and disposition in ASSIGNMENT_DISPOSITIONS:
+            route["assignment_disposition"] = disposition
+        routes.append(route)
 
     dependencies = []
     reliable_dependencies = True
@@ -637,7 +652,6 @@ def build_payload(records: list[dict], event_id: str) -> dict:
         "coordinator_usage_reason": coordinator_reason,
     }
     payload.update(explicit_characteristics(dispatches))
-    finish_data = finish.get("data")
     if isinstance(finish_data, dict):
         reasons = finish_data.get("blocker_reasons")
         if (isinstance(reasons, list)

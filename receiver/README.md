@@ -66,3 +66,9 @@ The client sends only on a specific user request. Legacy automatic consent and s
 Schema version 1 now accepts optional `correction_rounds` on each route. It counts distinct changes-requested review events, including a `both` review once. Functional and quality counters still overlap. Old payloads without this field remain valid and mean unknown distinct rounds; do not rewrite historical rows or frozen retries. Disclosure version 4 describes the new field.
 
 Deploy the compatible receiver before distributing the new client. No D1 migration or historical backfill is needed. Validate new and legacy payloads with the receiver tests; do not send a real telemetry event as a deployment probe.
+
+## Version 1.10.0 disposition rollout
+
+Schema version 1 accepts optional per-route `assignment_disposition` with only `superseded` or `cancelled`. It is copied from explicit closure data and does not replace `final_verdict`. No assignment IDs or free-text explanations are accepted. Omission remains valid for older clients and means unknown disposition. Disclosure version 5 covers the added category; frozen retries are unchanged.
+
+Deploy the compatible receiver before distributing the new client. No database migration or backfill is required.

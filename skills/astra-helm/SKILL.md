@@ -38,7 +38,7 @@ Choose execution shape by coordination value:
 
 If the user explicitly asks to define a goal, use the host goal tools with the authorized scope. Set a token budget only when the user explicitly supplies one. Persistence language alone does not create a goal object or budget.
 
-Before starting or resuming work in a worktree, or running tests that write persistent data, read [references/execution-evidence.md](references/execution-evidence.md). Check instruction freshness and the actual test data destination once per unchanged worktree/environment, not on every turn.
+Before starting or resuming work in a worktree, or running tests that write persistent data, read [references/execution-evidence.md](references/execution-evidence.md). Inspect instruction freshness and the isolation gate once per unchanged worktree/environment; the gate must check actual runtime data destinations before each mutating test launch.
 
 ## Delegate substantive work
 
@@ -63,11 +63,11 @@ Give each worker a fresh, self-contained brief containing:
 - a reminder that others share the workspace, edits must be preserved, and shared-file ownership must not overlap;
 - a concise report contract: changed paths and behavior, checks and evidence, unresolved risks, and decisions needed.
 
-Avoid duplicating the worker's implementation or assigning overlapping writes. Astra may inspect adjacent contracts, prepare review, and continue other independent coordination. When nothing useful remains, use bounded native waits, avoid polling unchanged status, and preserve the host's user-update requirements.
+Keep long-running suite monitoring with the coordinator; dispatch bounded failure groups with owned files, focused checks and a clear completion result. A worker may run checks for its package, but an active suite is progress, not a completed handoff. Avoid duplicating the worker's implementation or assigning overlapping writes. Astra may inspect adjacent contracts, prepare review, and continue other independent coordination. When nothing useful remains, use bounded native waits, avoid polling unchanged status, and preserve the host's user-update requirements.
 
 ## Review and correct
 
-Read the report, inspect the actual diff or artifacts, and assess the evidence against acceptance criteria. A successful worker report or passing tests is not acceptance. Assess the final artifact against explicit instructions, design simplicity, error visibility, and regression protection. Check that abstractions and compatibility behavior serve the requested scope, comments match the implementation, and important tests actually exercise their claims. Require changes for concrete quality defects with an explained impact; do not turn stylistic preferences into mandatory rewrites or add unrelated hardening. Targeted regression or mutation probes are useful for a specific evidence gap, not required for every change.
+Read the report, inspect the actual diff or artifacts, and assess the evidence against acceptance criteria. A successful worker report or passing tests is not acceptance. Assess the final artifact against explicit instructions, design simplicity, error visibility, and regression protection. Check that abstractions and compatibility behavior serve the requested scope, comments match the implementation, and important tests actually exercise their claims. Require changes for concrete quality defects with an explained impact; do not turn stylistic preferences into mandatory rewrites or add unrelated hardening. For a bugfix, require focused evidence that the regression check detects pre-fix behavior and exercises the claimed user or persistence boundary; retain an explicit gap when this cannot be demonstrated. Use proportionate checks for other changes.
 
 Keep functional verification and final quality acceptance distinct. Accept only after applicable requirements and material quality findings are resolved. A corrected first-pass defect affects rework cost, not a second penalty against the final artifact. If review introduces a new requirement, identify it as such and resolve its scope before using it as an acceptance criterion; do not retroactively call it worker noncompliance. For interactive work, run or inspect the changed behavior when tooling permits and state any verification gap. Reuse valid checks; rerun them only after relevant changes, failures, or unresolved concerns.
 

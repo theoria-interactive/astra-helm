@@ -1,25 +1,25 @@
 {
-  "version": "1.9.0",
+  "version": "1.10.0",
   "notes": [
-    "Improve distinct correction counts, assignment closure diagnostics, and integration guidance."
+    "Require runtime isolation gates, strengthen bugfix evidence, and clarify verification ownership and assignment closure."
   ],
   "files": {
-    "SKILL.md": "ab20156716734795990a80489d79e3b4637de5bac826f82b1e92db4431fbfa95",
+    "SKILL.md": "1b4b223dae5798bc5d56d542f1c0bb9bf619b88bf973daa4ef092d53adbb0b57",
     "agents/openai.yaml": "a2771e6e263020086d7675f5a84d413f9c43bda931bc6ce88adbda69ec5a9842",
-    "policy.json": "b12be7bb3654dfbddf552f80e5033e326ab25e1a9050fcf28b7e7e88c2d9a43e",
-    "references/execution-evidence.md": "ddbbea0783d8b54fb32536e876ec60165948c36c753e0defa40910c31f6f7ccd",
-    "references/large-work.md": "03e8a877b948a2407d1c142ff609c5202165978c6c5e4a22cca0c27d5ba11a01",
-    "references/logging.md": "4d8f7f1e43542a04ff9d37c5eba2dd8d1908d17bd1d0dfbc8b6b89a672356b81",
-    "references/telemetry.md": "0bae3c9a8bb293df225abfdeed82aa19e701e71663c39662b93e9bcb438e0b1e",
+    "policy.json": "ce87c4f7e7275a3ff08f670eb8b4ab511f14c2d91f84e49376232c6d26ebb968",
+    "references/execution-evidence.md": "6d29fb7c4c319b81c8db1c651cbabbb16c8b2fdd9517bb2c7e12311adff086f5",
+    "references/large-work.md": "806e157a5b7394a054588e871990bd56556985afb243d7ae33bbe0021581a9d4",
+    "references/logging.md": "7705122d9b8df95d461a374d5df7855f69559718b300a2f597792b573b60d8ca",
+    "references/telemetry.md": "ca1a7fda0c42d9fc0ebe3a7e0178a62b081dc5c1a4e75929e92b2624d1802a7d",
     "references/tuning.md": "e6ca4771cb23be3df596005e80cda3e5dc9df7851ca4c418977f37d77cbc1d3a",
     "references/updates.md": "91f640c341f7fdb4bdab1956af829e17f7ef02b6ec8016ebbb009c22fd7c6541",
     "scripts/build_update_manifest.py": "eda17202a96e616d1d5083cf94fac8eb01b713fab28e7c88999b0aefb4b7437b",
     "scripts/journal.py": "fcded56262d35161beff14ed73144de4dabb9be480464045b346d896d9a25810",
-    "scripts/telemetry.py": "27dcc7672e2936132feda6122838ba4628a81a2516f9af94f7ea62820393f533",
+    "scripts/telemetry.py": "cb7b1e4069cb38616e9faa7256b35ddd59241f59c2f33d3c33898942c9692d49",
     "scripts/test_journal.py": "4a97f730e66df7f65499aca5f3856f3d1ca3aafb452ae87a09f4696f407af4db",
-    "scripts/test_telemetry.py": "80ef6b53ec3637f48afcfb0a0b1c92d4e63edb18eab48a71b14a9c80d2ec68f0",
+    "scripts/test_telemetry.py": "1e0cf979d7160861c169388731a7f1867986549f193ed41f663cfb5c9c3ba3fc",
     "scripts/test_updater.py": "2d283f2aa0877a368f075577e5484df38e9026daae42f7e5828da7b22d451162",
     "scripts/updater.py": "80ea371d7585db2e087695604ece1203d8a9347ab47317ee8bfc264ad67d10a9",
-    "telemetry-config.json": "d0fd7b73ad27caa401d416b031ea23950cc7cfa382ec5b779761e83c5af98bbd"
+    "telemetry-config.json": "067645597bee1a774055074d57c5d3ac8c236d11796d27091165f92ba900439d"
   }
 }

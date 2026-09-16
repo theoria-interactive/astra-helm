@@ -33,6 +33,7 @@ const DELIVERED_WORK_STATUSES = new Set([
   "changes_requested",
   "not_reviewed",
 ]);
+const ASSIGNMENT_DISPOSITIONS = new Set(["superseded", "cancelled"]);
 const MODELS = new Set([
   "gpt-5.6-sol",
   "gpt-5.6-terra",
@@ -93,7 +94,7 @@ const ROUTE_REQUIRED_KEYS = new Set([
   "usage",
   "usage_reason",
 ]);
-const ROUTE_OPTIONAL_KEYS = new Set(["correction_rounds"]);
+const ROUTE_OPTIONAL_KEYS = new Set(["correction_rounds", "assignment_disposition"]);
 const USAGE_KEYS = new Set([
   "input_tokens",
   "cached_input_tokens",
@@ -168,6 +169,10 @@ function validateRoute(route) {
     ) return false;
   }
   if (!VERDICTS.has(route.final_verdict)) return false;
+  if (
+    Object.hasOwn(route, "assignment_disposition") &&
+    !ASSIGNMENT_DISPOSITIONS.has(route.assignment_disposition)
+  ) return false;
   return validateUsagePair(route.usage, route.usage_reason);
 }
 
@@ -388,7 +393,7 @@ async function postEvent(request, env) {
 const PRIVACY_DISCLOSURE = {
   service: "Astra Helm opt-in telemetry receiver",
   schema_version: 1,
-  disclosure_version: "4",
+  disclosure_version: "5",
   operator: "This endpoint is operated by Theoria Interactive, owner of the Astra Helm repository.",
   purpose: "Aggregate categorical routing outcomes to improve Astra Helm defaults.",
   trust: "Events are untrusted, opt-in self-reports; the server cannot prove user consent.",
@@ -419,6 +424,7 @@ const PRIVACY_DISCLOSURE = {
     usage: [...USAGE_KEYS],
     blocker_reasons: [...BLOCKER_REASONS],
     delivered_work_status: [...DELIVERED_WORK_STATUSES],
+    assignment_disposition: [...ASSIGNMENT_DISPOSITIONS],
   },
   excluded_data: [
     "prompts",
