@@ -102,6 +102,10 @@ The local root registry belongs beside journal files, never in the public skill 
 
 ## Capture runtime evidence
 
+Keep the journal and user-facing delegation updates consistent: announce the bounded package, requested model/effort and reason at dispatch, then summarize its actual result at the ready report or terminal failure. Include observed settings with their source, or disclose that they are unconfirmed. The ready report is not acceptance; retain the separate review event. User-facing updates require no new journal event types or worker round trips.
+
+Cost receipts are separately requested local reports; follow [cost-accounting.md](cost-accounting.md). Never feed overlapping journal snapshots into the calculator as independent calls. Build its input only where the source supports unique atomic call boundaries and explicit coverage. Keep receipt paths in evidence when useful, without altering historical measurements or treating calculated prices as observed billing.
+
 At each worker report and at completion, check whether the host exposes attributable model/effort and token usage. Record observations through a `runtime` event with a source reference; usage observations also require a measurement ID. Keep requested settings in `dispatch`/`coordinator`; only runtime evidence can establish actual settings. If unavailable, record null values and a brief reason in the report or finish (`runtime_unavailable_reason`, `usage_unavailable_reason`). Do not block task completion or run extra model calls merely to obtain telemetry.
 
 Record available input, cached-input, output, and reasoning-output counters with their scope and provenance. Cached input is a subset of input; reasoning output is a subset of output. Zero is a measured value, not missing data. Preserve each measurement's boundary: worker turn, coordinator turn, or an explicitly bounded run. Distinguish implementation, corrections, and review only when the source actually supports those phase boundaries. Reused workers need assignment/turn attribution; their lifetime totals do not belong to every package.

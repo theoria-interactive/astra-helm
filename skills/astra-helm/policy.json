@@ -1,5 +1,5 @@
 {
-  "version": "1.12.0",
+  "version": "1.14.0",
   "coordinator": {
     "model": "gpt-6-astra",
     "default_effort": "medium",
@@ -152,5 +152,29 @@
     "legacy_missing_fields": "unknown_not_backfilled",
     "assignment_closure": "latest_review_and_explicit_disposition_no_acceptance_inferred_from_parent",
     "export_assignment_disposition": "explicit_superseded_or_cancelled_only_preserve_latest_verdict"
+  },
+  "delegation_visibility": {
+    "dispatch": "concise_package_requested_model_effort_and_task_specific_reason",
+    "result": "actual_outcome_gaps_and_sourced_observed_settings_or_unconfirmed",
+    "worker_ready_is_acceptance": false,
+    "extra_worker_round_trips": false
+  },
+  "cost_accounting": {
+    "activation": "explicit_user_request_only",
+    "ordinary_use": "no_automatic_receipt_or_offer",
+    "execution": "local_only_no_submission",
+    "pricing": "explicit_dated_snapshot_with_sources",
+    "usage": "sourced_unique_atomic_calls_with_explicit_coverage",
+    "unknowns": "retain_null_and_coverage_gaps",
+    "comparison": "same_token_api_repricing_not_measured_savings_or_subscription_usage"
+  },
+  "worker_context": {
+    "tool_output": "targeted_reads_and_bounded_output_with_full_logs_and_exit_status_retained_when_needed",
+    "checkpoint": "one_worker_owned_current_state_note_for_long_packages_updated_at_meaningful_milestones",
+    "resume": "confirm_relevant_state_and_resume_next_step_reusing_valid_evidence",
+    "reassessment": "repeated_recovery_displacing_verified_progress_at_a_natural_boundary",
+    "handoff": "preserve_unresolved_scope_and_nonoverlapping_ownership",
+    "compaction_alone": "no_failure_inference_worker_replacement_model_effort_or_context_limit_change",
+    "routine_parent_acknowledgement": false
   }
 }

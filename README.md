@@ -106,6 +106,16 @@ Favor Terra high for general implementation and bounded investigations at explic
 
 Terra high retains end-to-end package ownership, including early probes, internal integration milestones, tests, and self-correction. Internal checkpoints do not require Astra approval. Astra reviews the ready package once, batches material corrections, and rechecks only changed areas and affected boundaries. Early escalation is reserved for failed foundational probes, decisions outside the brief, scope changes, and blockers. Workers retain package-scoped test monitoring; Astra coordinates shared suites and dependencies between separately owned packages.
 
+## Version 1.13.0
+
+Delegation updates now name the package, requested model and effort, and selection reason, then summarize the actual result and any verification gaps. Requested settings remain separate from runtime-confirmed settings, and worker readiness remains separate from acceptance.
+
+Cost accounting is optional and local: ask for a cost estimate or receipt to use the [calculator and input guide](skills/astra-helm/references/cost-accounting.md). It uses sourced usage and an explicitly supplied dated pricing snapshot, preserves incomplete coverage, and distinguishes same-token API repricing from measured savings or subscription charges. Ordinary tasks do not generate or offer receipts.
+
+## Version 1.14.0
+
+Long worker packages use focused reads, bounded tool output, and a compact local working checkpoint. After compaction, workers resume from recorded decisions and evidence instead of repeating settled work. Repeated recovery that crowds out verified progress triggers scope reassessment at a natural milestone; compaction count alone does not trigger worker replacement, model changes, or extra approval handoffs. See [worker context guidance](skills/astra-helm/references/worker-context.md).
+
 ## Development
 
 ```bash

@@ -1,21 +1,26 @@
 {
-  "version": "1.12.0",
+  "version": "1.14.0",
   "notes": [
-    "Reduce coordinator-worker handoffs with end-to-end worker ownership, internal checkpoints, consolidated review, and scoped correction follow-up."
+    "Add concise delegation updates and explicitly requested local cost receipts.",
+    "Bound long worker context with focused output, durable checkpoints, and evidence-based scope reassessment."
   ],
   "files": {
-    "SKILL.md": "3f5d87e1bee36de78cbc5b748eafd99c923f5306aa795f8066c5811d314fd256",
+    "SKILL.md": "8b0f9b9c329c82dab641b0ba17216cc373fd5e80470929473309777eac440dba",
     "agents/openai.yaml": "a2771e6e263020086d7675f5a84d413f9c43bda931bc6ce88adbda69ec5a9842",
-    "policy.json": "bc2d6aa145a038cc903a3304ff12204607c4dbd65db4a079006f2121cce2958b",
+    "policy.json": "eb4574d5e5f8cc0f01f9603f64dbc31047c379bdf404756ee72b7a3309d99f3d",
+    "references/cost-accounting.md": "f82b762fcef2e6a7b5913e502b15f2ac8a1bceecaa74d8a21a9a4844ffa252e0",
     "references/execution-evidence.md": "6d29fb7c4c319b81c8db1c651cbabbb16c8b2fdd9517bb2c7e12311adff086f5",
-    "references/large-work.md": "a935964e5c775cd8fb404fb15799e70ff55d7d9013318f9601cb9d5d68e78d6d",
-    "references/logging.md": "7705122d9b8df95d461a374d5df7855f69559718b300a2f597792b573b60d8ca",
+    "references/large-work.md": "bc6daf69169b77f2c4da423e1c2596ec6cbca1491cb2ad0bba0a2f2557e0e86e",
+    "references/logging.md": "be5e795961dcd851a51ccca1dac66d2efaefdec70298702d9c22c4bc787c6a25",
     "references/telemetry.md": "ca1a7fda0c42d9fc0ebe3a7e0178a62b081dc5c1a4e75929e92b2624d1802a7d",
     "references/tuning.md": "e6ca4771cb23be3df596005e80cda3e5dc9df7851ca4c418977f37d77cbc1d3a",
     "references/updates.md": "91f640c341f7fdb4bdab1956af829e17f7ef02b6ec8016ebbb009c22fd7c6541",
+    "references/worker-context.md": "8996cac8bd7a6cb0155a87af96d3426d12368f1676de17e1b91cd71085e3bf18",
     "scripts/build_update_manifest.py": "eda17202a96e616d1d5083cf94fac8eb01b713fab28e7c88999b0aefb4b7437b",
+    "scripts/cost_receipt.py": "b164ce9bb31d2e97cec6c563a7a9eefb996f2387754d047558754cc5a003896c",
     "scripts/journal.py": "fcded56262d35161beff14ed73144de4dabb9be480464045b346d896d9a25810",
     "scripts/telemetry.py": "cb7b1e4069cb38616e9faa7256b35ddd59241f59c2f33d3c33898942c9692d49",
+    "scripts/test_cost_receipt.py": "5bfe56ca2650d051267e4b9d6789dba67d7eb3705d7f12c820acbff56578a059",
     "scripts/test_journal.py": "4a97f730e66df7f65499aca5f3856f3d1ca3aafb452ae87a09f4696f407af4db",
     "scripts/test_telemetry.py": "1e0cf979d7160861c169388731a7f1867986549f193ed41f663cfb5c9c3ba3fc",
     "scripts/test_updater.py": "2d283f2aa0877a368f075577e5484df38e9026daae42f7e5828da7b22d451162",

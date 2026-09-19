@@ -60,12 +60,16 @@ Split integration-heavy packages into small behavioral milestones with explicit 
 
 The worker owns its package end to end: early probes, implementation, tests, self-review, and self-correction. Return when the package is ready for acceptance. Interrupt Astra earlier only for a failed foundational probe that prevents dependent work, a material architectural decision outside the agreed brief, a scope change, or a genuine blocker. Routine progress and successful checkpoints do not require an acknowledgement or continuation prompt. Astra must not send repeated status requests, incremental review findings, or reminders while the worker is making progress; required user-facing updates do not require worker round trips.
 
+Keep delegation visible with a concise user-facing update at dispatch: name the package, its bounded deliverable, the requested model and effort, and the task-specific selection reason. At its ready report, failure, interruption, or blocker, briefly state the actual outcome and material verification gaps. Distinguish worker-ready from coordinator-accepted. Include runtime-observed model/effort when exposed with their source; otherwise say the settings are unconfirmed rather than presenting the request as observation. Cover reviewers and failed dispatches the same way. Combine simultaneous updates when useful; avoid rigid receipts, repeated status messages, and extra worker calls solely for reporting.
+
+For long packages or repeated context recovery, use [references/worker-context.md](references/worker-context.md). Keep tool output focused and give the worker a durable, compact working checkpoint. Judge verified progress and repeated recovery work, not compaction count alone; preserve autonomous internal milestones and reassess scope at a natural boundary when recovery is crowding out delivery.
+
 Give each worker a fresh, self-contained brief containing:
 
 - desired behavior, acceptance criteria, owned files or modules, and all task-specific restrictions;
 - a proportionate quality contract: design constraints, error visibility, relevant complexity expectations, and critical regressions to protect; distinguish mandatory requirements from optional preferences;
 - relevant project instructions and proportionate checks, including runtime or visual evidence for interactive changes; for changes spanning persistence, retries, or shared contracts, identify affected consumers and state invariants, and run one representative integration probe early;
-- decisions it may make, authority to continue through internal checkpoints and self-corrections, and the specific escalation conditions that must return to Astra;
+- decisions it may make, authority to continue through internal checkpoints and self-corrections, and the specific escalation conditions that must return to Astra; for long packages include the working-checkpoint path and relevant context-management guidance;
 - a reminder that others share the workspace, edits must be preserved, and shared-file ownership must not overlap;
 - a concise report contract: changed paths and behavior, checks and evidence, unresolved risks, and decisions needed.
 
@@ -90,3 +94,7 @@ Read [references/logging.md](references/logging.md) before execution that will c
 The coordinator alone writes compact events. Register known fallback roots when the shared registry is writable; otherwise retain their paths for an explicit multi-root summary. At worker report and run completion, capture available sourced runtime settings and usage under the logging protocol, or record why they are unavailable. Do not infer actual settings from the requested route or worker self-description. Preserve the run ID and log root in handoff or compaction notes. On resumption, read the latest events and continue the same unfinished run; an interrupted run without `finish` remains incomplete. Unknown token, cost, effort, or usage values stay `null`, and account-wide quota changes are not task usage. Compare cost only among artifacts accepted against a comparable quality contract, including implementation, functional and quality corrections, and attributable Astra review. Separate shared experiment/setup overhead from per-route cost; an earlier functional pass is not cost-to-quality-acceptance.
 
 Do not tune policy automatically. Record improvement candidates and use [references/tuning.md](references/tuning.md) only when the user asks to analyze or revise Astra Helm.
+
+## Optional cost accounting
+
+Only when the user requests a cost estimate or receipt, use [references/cost-accounting.md](references/cost-accounting.md) and the local calculator. A request to add this capability does not enable receipts on later tasks. Do not automatically calculate, offer, or append receipts during ordinary work. Use sourced observed usage and an explicitly supplied dated pricing snapshot; retain missing usage and incomplete coverage as gaps. Same-token repricing is not measured savings, a quality comparison, or a subscription/quota estimate. This local calculation neither sends data nor authorizes performance sharing.
