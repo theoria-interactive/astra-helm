@@ -1,5 +1,5 @@
 {
-  "version": "1.10.0",
+  "version": "1.11.0",
   "coordinator": {
     "model": "gpt-6-astra",
     "default_effort": "medium",
@@ -9,9 +9,9 @@
   },
   "worker_routes": {
     "general_implementation": {
-      "model": "gpt-5.6-sol",
-      "effort": "medium",
-      "reason": "General implementation with contextual breadth or follow-through beyond a bounded local package."
+      "model": "gpt-5.6-terra",
+      "effort": "high",
+      "reason": "Preferred default for substantive implementation at the user’s request; retain bounded ownership and explicit integration acceptance."
     },
     "narrow_mechanical": {
       "model": "gpt-5.6-luna",
@@ -20,13 +20,13 @@
     },
     "bounded_or_read_heavy": {
       "model": "gpt-5.6-terra",
-      "effort": "medium",
-      "reason": "Bounded implementation or investigation with clear contracts and limited cross-component coupling."
+      "effort": "high",
+      "reason": "Preferred route for bounded implementation and investigations; lower effort remains available for clearly routine work with a recorded reason."
     },
     "complex_implementation": {
       "model": "gpt-5.6-sol",
       "effort": "high",
-      "reason": "Cross-component judgment for interacting subsystems, concurrency/scheduling, hard debugging, or consequential correctness; size alone is insufficient."
+      "reason": "Use when a concrete cross-component judgment, concurrency/scheduling, or hard-debugging requirement warrants Sol instead of preferred Terra high; complexity or size alone does not trigger escalation."
     },
     "clear_contract_reasoning": {
       "model": "gpt-5.6-luna",
@@ -62,7 +62,9 @@
     "release_dependents_after": "prerequisites_accepted_and_available",
     "refill_capacity_as_items_complete": true,
     "final_integration_review": true,
-    "long_running_verification": "coordinator_monitors_suite_workers_own_bounded_repairs"
+    "long_running_verification": "coordinator_monitors_suite_workers_own_bounded_repairs",
+    "integration_milestones": "Small behavioral slices with explicit ownership, prerequisites, and acceptance evidence; first prove the production boundary, then accept each lifecycle/consumer slice before releasing dependents.",
+    "repeated_boundary_failure": "After two unsuccessful corrections on the same boundary, diagnose contract, fixture, or ownership and narrow/replan the milestone before further patches."
   },
   "execution_evidence": {
     "worktree_instruction_check": "on_entry_or_resume_then_only_when_relevant_inputs_change",
@@ -70,7 +72,8 @@
     "additional_review": "requires_concrete_risk_or_evidence_gap",
     "accepted_evidence_reuse": "invalidate_only_for_relevant_source_dependency_environment_change_or_new_finding",
     "native_backend_probe": "early_representative_isolated_backend_probe_for_native_persistence_changes",
-    "isolation_negative_probe": "unexpected_destination_stops_test_without_touching_user_profile"
+    "isolation_negative_probe": "unexpected_destination_stops_test_without_touching_user_profile",
+    "early_persistence_recovery_gate": "Before broad implementation, verify an isolated real production write-read-recreate or close-reopen boundary and relevant failure/retry path; mocks alone do not pass. Missing environment leaves the affected milestone unverified."
   },
   "routing_assessment": {
     "dimensions": [
@@ -83,7 +86,13 @@
     "selection_unit": "owned_work_package",
     "mixed_routes_allowed": true,
     "other_supported_efforts": "require_task_specific_reason",
-    "evidence_status": "provisional_limited_samples"
+    "evidence_status": "provisional_limited_samples",
+    "preferred_worker": {
+      "model": "gpt-5.6-terra",
+      "effort": "high",
+      "basis": "Explicit user preference; not an inferred telemetry cost or quality ranking.",
+      "exceptions": "Keep Luna for narrow mechanical work; choose Sol or another effort only with a concrete task-specific reason."
+    }
   },
   "quality_acceptance": {
     "dimensions": [

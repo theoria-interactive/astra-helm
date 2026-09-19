@@ -18,7 +18,7 @@ The copy command is for a fresh installation. Review or back up an existing cust
 
 ## Routing and acceptance
 
-The coordinator stays at Astra medium unless explicitly overridden. Small coherent work can remain in Astra. Larger requests are split when behavior and file ownership provide useful boundaries; dependent packages wait for accepted prerequisites. Model and effort are selected per package, with Astra retaining integration acceptance.
+The coordinator stays at Astra medium unless explicitly overridden. Small coherent work can remain in Astra. Larger requests are split when behavior and file ownership provide useful boundaries; dependent packages wait for accepted prerequisites. Terra high is the preferred worker for substantive implementation and investigations. Narrow mechanical work can still use Luna, and a concrete task-specific reason can justify Sol or another effort. This is an explicit user preference, not a measured model ranking. Astra retains integration acceptance.
 
 Passing tests alone is not acceptance: review considers instruction compliance, design simplicity, error visibility, and critical regression coverage. See [the skill](skills/astra-helm/SKILL.md) and [versioned policy](skills/astra-helm/policy.json).
 
@@ -97,6 +97,10 @@ The resulting policy is to choose a worker for each package's requirements, revi
 Persistent application tests require a runtime-resolved destination gate before writes; when no safe gate is available, the affected test remains unrun. Bugfix verification must demonstrate sensitivity to the pre-fix behavior at the claimed boundary or retain an explicit evidence gap. Long-running suite monitoring stays with the coordinator while workers own bounded repair packages.
 
 Explicitly requested summaries can include a per-route `assignment_disposition` category (`superseded` or `cancelled`) without transmitting assignment IDs or replacing historical review verdicts. Older payloads and frozen retries remain valid. Routing defaults and explicit-request-only sharing are unchanged.
+
+## Version 1.11.0
+
+Favor Terra high for general implementation and bounded investigations at explicit user request. Preserve task-specific exceptions; telemetry does not establish a cost or quality advantage. Persistence/recovery work must pass an early isolated probe through the real production boundary before broad implementation. Integration-heavy work proceeds through small behavioral milestones with reviewed prerequisites, and repeated failures on one boundary require diagnosis and replanning.
 
 ## Development
 

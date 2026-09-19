@@ -1,12 +1,12 @@
 {
-  "version": "1.10.0",
+  "version": "1.11.0",
   "notes": [
-    "Require runtime isolation gates, strengthen bugfix evidence, and clarify verification ownership and assignment closure."
+    "Favor Terra high by explicit preference; enforce early real persistence/recovery probes and small reviewed integration milestones."
   ],
   "files": {
-    "SKILL.md": "1b4b223dae5798bc5d56d542f1c0bb9bf619b88bf973daa4ef092d53adbb0b57",
+    "SKILL.md": "4dc684c6d85d48b9e8d3dfc4c3df2c435bca2924ed3a31b77e040c1d9d75c094",
     "agents/openai.yaml": "a2771e6e263020086d7675f5a84d413f9c43bda931bc6ce88adbda69ec5a9842",
-    "policy.json": "ce87c4f7e7275a3ff08f670eb8b4ab511f14c2d91f84e49376232c6d26ebb968",
+    "policy.json": "4a6cfdcf145c53e960941138e74a2ec3bfc042a9a88fba5757be50f381ad2465",
     "references/execution-evidence.md": "6d29fb7c4c319b81c8db1c651cbabbb16c8b2fdd9517bb2c7e12311adff086f5",
     "references/large-work.md": "806e157a5b7394a054588e871990bd56556985afb243d7ae33bbe0021581a9d4",
     "references/logging.md": "7705122d9b8df95d461a374d5df7855f69559718b300a2f597792b573b60d8ca",
