@@ -1,5 +1,5 @@
 {
-  "version": "1.11.0",
+  "version": "1.12.0",
   "coordinator": {
     "model": "gpt-6-astra",
     "default_effort": "medium",
@@ -59,12 +59,19 @@
     "prefer_existing_epic_milestone_items": true,
     "decompose_large_unstructured_work": true,
     "parallelism_limit": "available_host_capacity_and_user_limits_as_ceiling_not_target",
-    "release_dependents_after": "prerequisites_accepted_and_available",
+    "release_dependents_after": "worker_verifies_internal_prerequisites; coordinator_accepts_cross_package_prerequisites",
     "refill_capacity_as_items_complete": true,
     "final_integration_review": true,
-    "long_running_verification": "coordinator_monitors_suite_workers_own_bounded_repairs",
-    "integration_milestones": "Small behavioral slices with explicit ownership, prerequisites, and acceptance evidence; first prove the production boundary, then accept each lifecycle/consumer slice before releasing dependents.",
-    "repeated_boundary_failure": "After two unsuccessful corrections on the same boundary, diagnose contract, fixture, or ownership and narrow/replan the milestone before further patches."
+    "long_running_verification": "worker_owns_package_checks; coordinator_monitors_shared_cross_package_suites",
+    "integration_milestones": "Small worker-owned behavioral checkpoints; verify prerequisites and continue autonomously within the package, retaining evidence for consolidated final review.",
+    "repeated_boundary_failure": "After two unsuccessful corrections on the same boundary, diagnose contract, fixture, or ownership and narrow/replan the milestone before further patches.",
+    "worker_ownership": "end_to_end_probes_implementation_tests_self_review_and_self_correction",
+    "early_escalation": [
+      "failed_foundational_probe_preventing_dependent_work",
+      "material_architecture_decision_outside_brief",
+      "scope_change",
+      "genuine_blocker"
+    ]
   },
   "execution_evidence": {
     "worktree_instruction_check": "on_entry_or_resume_then_only_when_relevant_inputs_change",
@@ -107,7 +114,8 @@
     "new_requirements": "identify_separately_from_original_noncompliance",
     "style_preferences": "not_mandatory_without_concrete_impact",
     "integration_preflight": "affected_consumers_state_invariants_and_early_representative_probe_when_relevant",
-    "bugfix_regression": "demonstrate_pre_fix_detection_at_claimed_boundary_or_record_gap"
+    "bugfix_regression": "demonstrate_pre_fix_detection_at_claimed_boundary_or_record_gap",
+    "review_cadence": "one_consolidated_review_of_ready_package; batch_material_findings; corrections_review_changed_areas_and_affected_boundaries"
   },
   "history_collection": {
     "fallback_roots": "register_explicit_known_roots_when_shared_registry_writable_otherwise_include_root_on_summary",
@@ -116,7 +124,8 @@
     "usage_aggregation": "preserve_measurement_scope_do_not_sum_overlapping_records",
     "correction_events": "one_changes_requested_review_per_substantive_correction_round_even_with_replan",
     "submission_provenance": "reuse_existing_delivery_state_and_register_known_fallback_roots",
-    "correction_rounds": "distinct_changes_requested_reviews_separate_from_overlapping_categories"
+    "correction_rounds": "distinct_changes_requested_reviews_separate_from_overlapping_categories",
+    "internal_checkpoints": "summarize_in_ready_report_without_mandatory_coordinator_round_trips"
   },
   "installer_updates": {
     "checks": "opt_in_weekly_on_skill_load",

@@ -102,6 +102,10 @@ Explicitly requested summaries can include a per-route `assignment_disposition` 
 
 Favor Terra high for general implementation and bounded investigations at explicit user request. Preserve task-specific exceptions; telemetry does not establish a cost or quality advantage. Persistence/recovery work must pass an early isolated probe through the real production boundary before broad implementation. Integration-heavy work proceeds through small behavioral milestones with reviewed prerequisites, and repeated failures on one boundary require diagnosis and replanning.
 
+## Version 1.12.0
+
+Terra high retains end-to-end package ownership, including early probes, internal integration milestones, tests, and self-correction. Internal checkpoints do not require Astra approval. Astra reviews the ready package once, batches material corrections, and rechecks only changed areas and affected boundaries. Early escalation is reserved for failed foundational probes, decisions outside the brief, scope changes, and blockers. Workers retain package-scoped test monitoring; Astra coordinates shared suites and dependencies between separately owned packages.
+
 ## Development
 
 ```bash

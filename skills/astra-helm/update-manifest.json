@@ -1,14 +1,14 @@
 {
-  "version": "1.11.0",
+  "version": "1.12.0",
   "notes": [
-    "Favor Terra high by explicit preference; enforce early real persistence/recovery probes and small reviewed integration milestones."
+    "Reduce coordinator-worker handoffs with end-to-end worker ownership, internal checkpoints, consolidated review, and scoped correction follow-up."
   ],
   "files": {
-    "SKILL.md": "4dc684c6d85d48b9e8d3dfc4c3df2c435bca2924ed3a31b77e040c1d9d75c094",
+    "SKILL.md": "3f5d87e1bee36de78cbc5b748eafd99c923f5306aa795f8066c5811d314fd256",
     "agents/openai.yaml": "a2771e6e263020086d7675f5a84d413f9c43bda931bc6ce88adbda69ec5a9842",
-    "policy.json": "4a6cfdcf145c53e960941138e74a2ec3bfc042a9a88fba5757be50f381ad2465",
+    "policy.json": "bc2d6aa145a038cc903a3304ff12204607c4dbd65db4a079006f2121cce2958b",
     "references/execution-evidence.md": "6d29fb7c4c319b81c8db1c651cbabbb16c8b2fdd9517bb2c7e12311adff086f5",
-    "references/large-work.md": "806e157a5b7394a054588e871990bd56556985afb243d7ae33bbe0021581a9d4",
+    "references/large-work.md": "a935964e5c775cd8fb404fb15799e70ff55d7d9013318f9601cb9d5d68e78d6d",
     "references/logging.md": "7705122d9b8df95d461a374d5df7855f69559718b300a2f597792b573b60d8ca",
     "references/telemetry.md": "ca1a7fda0c42d9fc0ebe3a7e0178a62b081dc5c1a4e75929e92b2624d1802a7d",
     "references/tuning.md": "e6ca4771cb23be3df596005e80cda3e5dc9df7851ca4c418977f37d77cbc1d3a",
